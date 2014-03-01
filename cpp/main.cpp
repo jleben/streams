@@ -14,7 +14,14 @@ int main()
 
   auto s = n( stream<float>() );
 
-  print_stream_type(s);
+  auto n2 = make_parallel( collect<2>(), collect<3>() );
+  auto s2 = n2( make_tuple(stream<float>(), stream<float>()));
+
+  auto n3 = make_parallel( reduce(), map() );
+  auto s3 = n3(s);
+
+
+  print_stream_type(s3);
 
   lace<3,float>::type a;
   get<0>(a) = 1;

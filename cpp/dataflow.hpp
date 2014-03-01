@@ -113,6 +113,47 @@ series<ElementTypes...> make_series(  ElementTypes... e )
   return series<ElementTypes...>(e...);
 }
 
+template <typename ...ElementTypes>
+struct parallel
+{
+  tuple<ElementTypes...> elements;
+
+  parallel( ElementTypes... e ): elements(e...) {}
+
+  template <typename ... Inputs>
+  auto operator()( tuple<Inputs...> inputs )
+  {
+    return outputs_for< sizeof...(Inputs) - 1, Inputs... >::get(elements, inputs );
+  }
+
+private:
+  template <size_t I, typename ...Inputs>
+  struct outputs_for
+  {
+    static auto get( tuple<ElementTypes...> elements, tuple<Inputs...> & inputs )
+    {
+      auto output = std::get<I>(elements)( std::get<I>(inputs) );
+      return tuple_cat( outputs_for<I-1, Inputs...>::get(elements, inputs), make_tuple(output) );
+    }
+  };
+
+  template <typename ...Inputs>
+  struct outputs_for<0, Inputs...>
+  {
+    static auto get( tuple<ElementTypes...> elements, tuple<Inputs...> & inputs )
+    {
+      auto output = std::get<0>(elements)( std::get<0>(inputs) );
+      return make_tuple(output);
+    }
+  };
+};
+
+template <typename ...Elements>
+parallel<Elements...> make_parallel(  Elements... e )
+{
+  return parallel<Elements...>(e...);
+}
+
 /////////////// Print Flow Types //////////////
 
 template <typename T>
