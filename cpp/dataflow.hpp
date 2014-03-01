@@ -56,7 +56,7 @@ struct split
   template <typename T, size_t N>
   auto operator()( stream< array<T,N> > )
   {
-    typename lace<N,T>::type output;
+    typename lace<N,stream<T>>::type output;
     return output;
   }
 };
@@ -112,6 +112,8 @@ series<ElementTypes...> make_series(  ElementTypes... e )
 {
   return series<ElementTypes...>(e...);
 }
+
+/////////////// Print Flow Types //////////////
 
 template <typename T>
 struct type_printer
