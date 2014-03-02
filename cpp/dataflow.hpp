@@ -200,6 +200,12 @@ struct constant : public generate<T>
 template <typename T>
 constant<T> make_constant( const T & v ) { return constant<T>(v); }
 
+template <typename T, typename ...TT>
+constant< array<T, sizeof...(TT)+1> > make_constant( const T & v, const TT ... vv )
+{
+  return array<T, sizeof...(TT)+1>({v, vv...});
+}
+
 struct sine
 {
   unsigned int m_phase;

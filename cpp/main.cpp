@@ -34,7 +34,7 @@ int main()
                        printer() );
   //auto v3 = n3.process();
 
-  auto x = serialize( accumulate<3>( accumulate<2>( constant< array<int,3> >({1,2,3}) ) ),
+  auto x = serialize( accumulate<3>( accumulate<2>( make_constant(1,2,3) ) ),
                       sum() );
 
   print(x.process());
