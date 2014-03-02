@@ -63,84 +63,74 @@ struct split
 
 /////////////// Composites //////////////
 
-template<size_t I> struct ElementIndex { static const size_t value = I; };
-
-#if 1
-template <typename Elements, typename Input, typename Index>
-struct chainer
-{
-  static auto output( Elements & elems, Input & input )
-  {
-    //return 5.0;
-         auto intermediate = chainer<Elements, Input, ElementIndex<Index::value+1>>::output(elems, input);
-    return std::get<Index::value>(elems)(intermediate);
-  }
-};
-
-template <typename Elements, typename Input>
-struct chainer<Elements, Input, ElementIndex<std::tuple_size<Elements>::value-1> >
-{
-  //const size_t a = std::tuple_size<Elements>::value;
-  //static float output( Elements & elems, stream<Input> & input ) { return 1.0; }
-
-  static auto output( Elements & elems, Input & input )
-  {
-    return std::get< std::tuple_size<Elements>::value-1 >(elems)( input );
-  }
-};
-#endif
-
-template <typename ...ElementTypes>
+template <typename ...Elements>
 struct series
 {
-  tuple<ElementTypes...> elements;
+  tuple<Elements...> elements;
 
-  series( ElementTypes... e ): elements(e...) {}
+  series( Elements... e ): elements(e...) {}
 
   template <typename Input>
   auto operator()( Input input )
   {
-    //test(elements);
-    //return 1.0;
-    return chainer<tuple<ElementTypes...>, Input, ElementIndex<0>>::output(elements, input);
-    //return chain<0,InputType>(input);
+    return get_output<sizeof...(Elements)-1, Input>::from(elements, input);
   }
+
+private:
+  template <size_t I, typename Input>
+  struct get_output
+  {
+    static auto from( tuple<Elements...> & elements, Input & input )
+    {
+      auto intermediate = get_output<I-1, Input>::from(elements, input);
+      return std::get<I>(elements)(intermediate);
+    }
+  };
+
+  template <typename Input>
+  struct get_output<0, Input>
+  {
+    static auto from( tuple<Elements...> & elements, Input & input )
+    {
+      return std::get<0>(elements)(input);
+    }
+  };
 };
 
-template <typename ...ElementTypes>
-series<ElementTypes...> make_series(  ElementTypes... e )
+template <typename ...Elements>
+series<Elements...> make_series(  Elements... e )
 {
-  return series<ElementTypes...>(e...);
+  return series<Elements...>(e...);
 }
 
-template <typename ...ElementTypes>
+template <typename ...Elements>
 struct parallel
 {
-  tuple<ElementTypes...> elements;
+  tuple<Elements...> elements;
 
-  parallel( ElementTypes... e ): elements(e...) {}
+  parallel( Elements... e ): elements(e...) {}
 
   template <typename ... Inputs>
   auto operator()( tuple<Inputs...> inputs )
   {
-    return outputs_for< sizeof...(Inputs) - 1, Inputs... >::get(elements, inputs );
+    return get_output< sizeof...(Inputs) - 1, Inputs... >::from(elements, inputs );
   }
 
 private:
   template <size_t I, typename ...Inputs>
-  struct outputs_for
+  struct get_output
   {
-    static auto get( tuple<ElementTypes...> elements, tuple<Inputs...> & inputs )
+    static auto from( tuple<Elements...> elements, tuple<Inputs...> & inputs )
     {
       auto output = std::get<I>(elements)( std::get<I>(inputs) );
-      return tuple_cat( outputs_for<I-1, Inputs...>::get(elements, inputs), make_tuple(output) );
+      return tuple_cat( get_output<I-1, Inputs...>::from(elements, inputs), make_tuple(output) );
     }
   };
 
   template <typename ...Inputs>
-  struct outputs_for<0, Inputs...>
+  struct get_output<0, Inputs...>
   {
-    static auto get( tuple<ElementTypes...> elements, tuple<Inputs...> & inputs )
+    static auto from( tuple<Elements...> elements, tuple<Inputs...> & inputs )
     {
       auto output = std::get<0>(elements)( std::get<0>(inputs) );
       return make_tuple(output);

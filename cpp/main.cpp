@@ -9,7 +9,13 @@ int main()
 {
 
   //auto n = make_series( reduce(), map(), collect<2>(), collect<3>() );
-  auto n = make_series( split(), map(), collect<2>(), collect<3>() );
+  //auto n = make_series( make_parallel( reduce(), map() ), split(), map(), collect<2>(), collect<3>() );
+  auto n = make_series( collect<3>(),
+                        collect<2>(),
+                        map(),
+                        split(),
+                        make_parallel( reduce(), map() ),
+                        make_parallel( map(), reduce() ) );
   //auto n = make_series( map(), collect<2>(), collect<3>() );
 
   auto s = n( stream<float>() );
@@ -17,11 +23,11 @@ int main()
   auto n2 = make_parallel( collect<2>(), collect<3>() );
   auto s2 = n2( make_tuple(stream<float>(), stream<float>()));
 
-  auto n3 = make_parallel( reduce(), map() );
-  auto s3 = n3(s);
+  //auto n3 = make_parallel( reduce(), map() );
+  //auto s3 = n3(s);
 
 
-  print_stream_type(s3);
+  print_stream_type(s);
 
   lace<3,float>::type a;
   get<0>(a) = 1;
