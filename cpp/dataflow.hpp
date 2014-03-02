@@ -24,13 +24,27 @@ struct lace<1, tuple<Head, Tail...> >
   typedef tuple<Head, Tail...> type;
 };
 
-/////////////// Flow Manipulators //////////////
+/////////////// Streams ///////////////
 
 template <typename T>
 struct stream
 {
   typedef T type;
 };
+
+/////////////// Workers ///////////////
+
+namespace streams {
+
+template <typename T>
+struct generate
+{
+  stream<T> operator()() { return stream<T>(); }
+};
+
+}
+
+/////////////// Flow Manipulators //////////////
 
 template<size_t N>
 struct collect
@@ -70,29 +84,45 @@ struct series
 
   series( Elements... e ): elements(e...) {}
 
+  auto operator()()
+  {
+    return get_output<sizeof...(Elements)-1, no_input, tuple<Elements...>>::from(elements, no_input());
+  }
+
   template <typename Input>
   auto operator()( Input input )
   {
-    return get_output<sizeof...(Elements)-1, Input>::from(elements, input);
+    return get_output<sizeof...(Elements)-1, Input, tuple<Elements...>>::from(elements, input);
   }
 
 private:
-  template <size_t I, typename Input>
+  struct no_input {};
+
+  template <size_t I, typename Input, typename Elem>
   struct get_output
   {
-    static auto from( tuple<Elements...> & elements, Input & input )
+    static auto from( Elem & elements, const Input & input )
     {
-      auto intermediate = get_output<I-1, Input>::from(elements, input);
+      auto intermediate = get_output<I-1, Input, Elem>::from(elements, input);
       return std::get<I>(elements)(intermediate);
     }
   };
 
-  template <typename Input>
-  struct get_output<0, Input>
+  template <typename Input, typename Elem>
+  struct get_output<0, Input, Elem>
   {
-    static auto from( tuple<Elements...> & elements, Input & input )
+    static auto from( Elem & elements, const Input & input )
     {
       return std::get<0>(elements)(input);
+    }
+  };
+
+  template <typename Elem>
+  struct get_output<0, no_input, Elem>
+  {
+    static auto from( Elem & elements, const no_input & input )
+    {
+      return std::get<0>(elements)();
     }
   };
 };

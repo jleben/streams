@@ -10,15 +10,17 @@ int main()
 
   //auto n = serialize( reduce(), map(), collect<2>(), collect<3>() );
   //auto n = serialize( make_parallel( reduce(), map() ), split(), map(), collect<2>(), collect<3>() );
-  auto n = serialize( collect<3>(),
-                      collect<2>(),
-                      map(),
-                      split(),
-                      parallelize( reduce(), map() ),
-                      parallelize( map(), reduce() ) );
+  auto n = serialize (
+        streams::generate<float>(),
+        collect<3>(),
+        collect<2>(),
+        map(),
+        split(),
+        parallelize( reduce(), map() ),
+        parallelize( map(), reduce() ) );
   //auto n = serialize( map(), collect<2>(), collect<3>() );
 
-  auto s = n( stream<float>() );
+  auto s = n( );
 
   auto n2 = parallelize( collect<2>(), collect<3>() );
   auto s2 = n2( make_tuple(stream<float>(), stream<float>()));
