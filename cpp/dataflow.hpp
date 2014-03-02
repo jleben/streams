@@ -130,10 +130,10 @@ struct generate
 #endif
 };
 
-struct identity : public map
+struct square : public map
 {
   template <typename T>
-  T process(const T & in) { return in; }
+  T process(const T & in) { return in * in; }
 };
 
 struct sum : public reduce
@@ -181,27 +181,39 @@ struct series
 #endif
   auto process()
   {
-    return processor< sizeof...(Elements)-1, tuple<Elements...> >::process(elements);
+    return processor< sizeof...(Elements)-1, tuple<Elements...>, no_input >::process(elements, no_input());
+  }
+
+  template <typename Input>
+  auto process( const Input & input )
+  {
+    return processor< sizeof...(Elements)-1, tuple<Elements...>, Input >::process(elements, input);
   }
 
 private:
-  template <size_t I, typename Elems>
+  template <size_t I, typename Elems, typename Input>
   struct processor
   {
-    static auto process( Elems & elements )
-    -> decltype( std::get<I>(elements).process( processor<I-1, Elems>::process( elements ) ) )
+    static auto process( Elems & elements, const Input & input )
     {
-      auto temp = processor<I-1, Elems>::process( elements );
+      auto temp = processor<I-1, Elems, Input>::process( elements, input );
       return std::get<I>(elements).process(temp);
     }
   };
 
+  template <typename Elems, typename Input>
+  struct processor<0, Elems, Input>
+  {
+    static auto process( Elems & elements, const Input & input )
+    {
+      return std::get<0>(elements).process( input );
+    }
+  };
 
   template <typename Elems>
-  struct processor<0, Elems>
+  struct processor<0, Elems, no_input>
   {
-    static auto process( Elems & elements )
-    -> decltype( std::get<0>(elements).process() )
+    static auto process( Elems & elements, no_input )
     {
       return std::get<0>(elements).process();
     }
@@ -321,12 +333,143 @@ parallel<Elements...> parallelize(  Elements... e )
   return parallel<Elements...>(e...);
 }
 
+template <size_t N, typename Element>
+struct accumulator
+{
+  Element m_element;
+
+  accumulator(const Element & elem): m_element(elem) {}
+
+  array<typename output_of<Element, no_input>::type, N> process()
+  {
+    array<typename output_of<Element, no_input>::type, N> output;
+    for (size_t i = 0; i < N; ++i)
+    {
+      output[i] = m_element.process();
+    }
+    return output;
+  }
+};
+
+template <size_t N, typename Element>
+accumulator<N,Element> accumulate( const Element & e )
+{
+  return accumulator<N,Element>(e);
+}
+
+template <typename Element>
+struct shredder
+{
+  Element m_element;
+
+  shredder(const Element & elem): m_element(elem) {}
+
+  template <typename T, size_t N>
+  void process( const array<T,N> & input )
+  {
+    for (size_t i = 0; i < N; ++i)
+    {
+      m_element.process( input[i] );
+    }
+  }
+};
+
+template <typename Element>
+shredder<Element> shred( const Element & e )
+{
+  return shredder<Element>(e);
+}
+
+/////////////// Printer //////////////
+
+namespace printing
+{
+
+template <typename T>
+struct printer_for { static void print( const T & v ) { cout << v; } };
+
+template <>
+struct printer_for<void> { static void print() { cout << "-"; } };
+
+template <typename T, size_t N>
+struct printer_for<array<T,N>>
+{
+  static void print( const array<T,N> & a )
+  {
+    cout << "[";
+    for ( const T & v : a )
+    {
+      printer_for<T>::print(v);
+      cout << ", ";
+    }
+    cout << "]";
+  }
+};
+
+template<size_t I, typename Tuple>
+struct tuple_printer_for
+{
+  static void print( const Tuple & t )
+  {
+    tuple_printer_for<I-1,Tuple>::print(t);
+    cout << ", ";
+    printer_for<typename tuple_element<I,Tuple>::type>::print( std::get<I>(t) );
+  }
+};
+
+template<typename Tuple>
+struct tuple_printer_for<0,Tuple>
+{
+  static void print( const Tuple & t )
+  {
+    printer_for<typename tuple_element<0,Tuple>::type>::print( std::get<0>(t) );
+  }
+};
+
+template <typename ...T>
+struct printer_for<tuple<T...>>
+{
+  static void print( const tuple<T...> & t )
+  {
+    cout << "<";
+    tuple_printer_for< sizeof...(T)-1, tuple<T...> >::print();
+    cout << ">";
+  }
+};
+
+}
+
+struct printer
+{
+  void process()
+  {
+    printing::printer_for<void>::print();
+  }
+
+  template <typename T>
+  const T & process( const T & input )
+  {
+    cout << "printer: ";
+    printing::printer_for<T>::print(input);
+    cout << endl;
+
+    return input;
+  }
+};
+
+
 /////////////// Print Flow Types //////////////
 
 template <typename T>
 struct type_printer
 {
   static void print() { cout << "x"; }
+};
+
+template <>
+struct type_printer<void>
+{
+  static void print() { cout << "-"; }
 };
 
 template <typename T, size_t N>
