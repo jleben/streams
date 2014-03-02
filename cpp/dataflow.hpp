@@ -8,6 +8,8 @@
 
 using namespace std;
 
+namespace streams {
+
 /////////////// Utilities //////////////
 
 template<size_t I, typename T>
@@ -24,55 +26,136 @@ struct lace<1, tuple<Head, Tail...> >
   typedef tuple<Head, Tail...> type;
 };
 
+//
+
+template<size_t I, typename Array>
+struct array_to_tuple
+{
+  static auto value( const Array & array )
+  -> decltype( tuple_cat( array_to_tuple<I-1,Array>::value(array), make_tuple(array[I]) ) )
+  {
+    return tuple_cat( array_to_tuple<I-1,Array>::value(array), make_tuple(array[I]) );
+  }
+};
+
+template<typename Array>
+struct array_to_tuple<0, Array>
+{
+  static auto value( const Array & array )
+  -> decltype( make_tuple(array[0]) )
+  {
+    return make_tuple(array[0]);
+  }
+};
+
+//
+
+struct no_input {};
+struct no_output {};
+
+template<typename proc, typename input>
+struct output_of
+{
+  typedef decltype( declval<proc>().process( declval<input>() ) ) type;
+};
+
+template<typename proc>
+struct output_of<proc, no_input>
+{
+  typedef decltype( declval<proc>().process() ) type;
+};
+
 /////////////// Streams ///////////////
 
+#if INDEPENDENT_TYPE_LOOKUP
 template <typename T>
 struct stream
 {
   typedef T type;
 };
-
-/////////////// Workers ///////////////
-
-namespace streams {
-
-template <typename T>
-struct generate
-{
-  stream<T> operator()() { return stream<T>(); }
-};
-
-}
+#endif
 
 /////////////// Flow Manipulators //////////////
 
 template<size_t N>
 struct collect
 {
+#if INDEPENDENT_TYPE_LOOKUP
   template <typename T>
   stream< array<T,N> > operator()( stream<T> ) { return stream< array<T,N> >(); }
+#endif
 };
 
 struct map
 {
+#if INDEPENDENT_TYPE_LOOKUP
   template <typename T>
   stream<T> operator()( stream<T> ) { return stream<T>(); }
+#endif
 };
 
 struct reduce
 {
+#if INDEPENDENT_TYPE_LOOKUP
   template <typename T, size_t N>
   stream<T> operator()( stream< array<T,N> > ) { return stream<T>(); }
+#endif
 };
 
 struct split
 {
+#if INDEPENDENT_TYPE_LOOKUP
   template <typename T, size_t N>
   auto operator()( stream< array<T,N> > )
   {
     typename lace<N,stream<T>>::type output;
     return output;
   }
+#endif
+  template <typename T, size_t N>
+  auto process( const array<T,N> & input )
+  -> decltype( array_to_tuple< N-1, array<T,N> >::value(input) )
+  {
+    return array_to_tuple< N-1, array<T,N> >::value(input);
+  }
+};
+
+/////////////// Workers ///////////////
+
+template <typename T>
+struct generate
+{
+#if INDEPENDENT_TYPE_LOOKUP
+  stream<T> operator()() { return stream<T>(); }
+#endif
+};
+
+struct identity : public map
+{
+  template <typename T>
+  T process(const T & in) { return in; }
+};
+
+struct sum : public reduce
+{
+  template <typename T, size_t N>
+  T process(const array<T,N> & in)
+  {
+    return std::accumulate(in.begin(), in.end(), 0);
+  }
+};
+
+struct noise : public generate<int>
+{
+  int process() { return std::rand(); }
+};
+
+template <typename T>
+struct constant : public generate<T>
+{
+  T m_value;
+  constant(const T & value): m_value(value) {};
+  T process() { return m_value; }
 };
 
 /////////////// Composites //////////////
@@ -84,6 +167,7 @@ struct series
 
   series( Elements... e ): elements(e...) {}
 
+#if INDEPENDENT_TYPE_LOOKUP
   auto operator()()
   {
     return get_output<sizeof...(Elements)-1, no_input, tuple<Elements...>>::from(elements, no_input());
@@ -94,10 +178,36 @@ struct series
   {
     return get_output<sizeof...(Elements)-1, Input, tuple<Elements...>>::from(elements, input);
   }
+#endif
+  auto process()
+  {
+    return processor< sizeof...(Elements)-1, tuple<Elements...> >::process(elements);
+  }
 
 private:
-  struct no_input {};
+  template <size_t I, typename Elems>
+  struct processor
+  {
+    static auto process( Elems & elements )
+    -> decltype( std::get<I>(elements).process( processor<I-1, Elems>::process( elements ) ) )
+    {
+      auto temp = processor<I-1, Elems>::process( elements );
+      return std::get<I>(elements).process(temp);
+    }
+  };
 
+
+  template <typename Elems>
+  struct processor<0, Elems>
+  {
+    static auto process( Elems & elements )
+    -> decltype( std::get<0>(elements).process() )
+    {
+      return std::get<0>(elements).process();
+    }
+  };
+
+#if INDEPENDENT_TYPE_LOOKUP
   template <size_t I, typename Input, typename Elem>
   struct get_output
   {
@@ -125,6 +235,7 @@ private:
       return std::get<0>(elements)();
     }
   };
+#endif
 };
 
 template <typename ...Elements>
@@ -140,6 +251,7 @@ struct parallel
 
   parallel( Elements... e ): elements(e...) {}
 
+#if INDEPENDENT_TYPE_LOOKUP
   auto operator()()
   {
     return get_output< sizeof...(Elements)-1, NoInput, tuple<Elements...> >::from(elements, NoInput());
@@ -150,8 +262,10 @@ struct parallel
   {
     return get_output< sizeof...(Elements)-1, tuple<Inputs...>, tuple<Elements...> >::from(elements, inputs );
   }
+#endif
 
 private:
+#if INDEPENDENT_TYPE_LOOKUP
   struct NoInput {};
   template<size_t> struct Index {};
 
@@ -198,6 +312,7 @@ private:
       return make_tuple(output);
     }
   };
+#endif
 };
 
 template <typename ...Elements>
@@ -225,6 +340,7 @@ struct type_printer< array<T,N> >
   }
 };
 
+#if INDEPENDENT_TYPE_LOOKUP
 template <typename T>
 struct type_printer< stream<T> >
 {
@@ -235,6 +351,7 @@ struct type_printer< stream<T> >
     cout << " )";
   }
 };
+#endif
 
 template <typename Head, typename ...Tail>
 struct tuple_printer
@@ -263,9 +380,10 @@ struct type_printer< tuple<T...> >
 };
 
 template <typename T>
-void print_stream_type( T & s )
+void print_stream_type( const T & s )
 {
   type_printer<T>::print();
   cout << endl;
 }
 
+}
