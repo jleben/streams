@@ -8,19 +8,19 @@ using namespace std;
 int main()
 {
 
-  //auto n = make_series( reduce(), map(), collect<2>(), collect<3>() );
-  //auto n = make_series( make_parallel( reduce(), map() ), split(), map(), collect<2>(), collect<3>() );
-  auto n = make_series( collect<3>(),
-                        collect<2>(),
-                        map(),
-                        split(),
-                        make_parallel( reduce(), map() ),
-                        make_parallel( map(), reduce() ) );
-  //auto n = make_series( map(), collect<2>(), collect<3>() );
+  //auto n = serialize( reduce(), map(), collect<2>(), collect<3>() );
+  //auto n = serialize( make_parallel( reduce(), map() ), split(), map(), collect<2>(), collect<3>() );
+  auto n = serialize( collect<3>(),
+                      collect<2>(),
+                      map(),
+                      split(),
+                      parallelize( reduce(), map() ),
+                      parallelize( map(), reduce() ) );
+  //auto n = serialize( map(), collect<2>(), collect<3>() );
 
   auto s = n( stream<float>() );
 
-  auto n2 = make_parallel( collect<2>(), collect<3>() );
+  auto n2 = parallelize( collect<2>(), collect<3>() );
   auto s2 = n2( make_tuple(stream<float>(), stream<float>()));
 
   //auto n3 = make_parallel( reduce(), map() );

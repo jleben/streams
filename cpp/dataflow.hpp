@@ -98,7 +98,7 @@ private:
 };
 
 template <typename ...Elements>
-series<Elements...> make_series(  Elements... e )
+series<Elements...> serialize(  Elements... e )
 {
   return series<Elements...>(e...);
 }
@@ -139,7 +139,7 @@ private:
 };
 
 template <typename ...Elements>
-parallel<Elements...> make_parallel(  Elements... e )
+parallel<Elements...> parallelize(  Elements... e )
 {
   return parallel<Elements...>(e...);
 }
