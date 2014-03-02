@@ -396,13 +396,14 @@ struct printer_for<array<T,N>>
 {
   static void print( const array<T,N> & a )
   {
-    cout << "[";
-    for ( const T & v : a )
+    cout << "[ ";
+    for ( size_t i = 0; i < N; ++i )
     {
-      printer_for<T>::print(v);
-      cout << ", ";
+      if (i > 0)
+        cout << ", ";
+      printer_for<T>::print(a[i]);
     }
-    cout << "]";
+    cout << " ]";
   }
 };
 
@@ -431,9 +432,9 @@ struct printer_for<tuple<T...>>
 {
   static void print( const tuple<T...> & t )
   {
-    cout << "<";
-    tuple_printer_for< sizeof...(T)-1, tuple<T...> >::print();
-    cout << ">";
+    cout << "< ";
+    tuple_printer_for< sizeof...(T)-1, tuple<T...> >::print(t);
+    cout << " >";
   }
 };
 
