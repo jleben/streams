@@ -14,8 +14,8 @@ int main()
         collect<2>(),
         map(),
         split(),
-        parallelize( reduce(), map() ),
-        parallelize( map(), reduce() ) );
+        parallelize( sum(), map() ),
+        parallelize( map(), sum() ) );
 
   //auto s = n();
 
@@ -34,8 +34,8 @@ int main()
                        printer() );
   //auto v3 = n3.process();
 
-  auto x = accumulate<1000>(
-        serialize( constant<double>(1/10.0), sine() ) );
+  auto x = serialize( accumulate<3>( accumulate<2>( constant< array<int,3> >({1,2,3}) ) ),
+                      sum() );
 
   print(x.process());
 

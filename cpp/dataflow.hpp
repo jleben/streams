@@ -94,8 +94,36 @@ struct map
 #endif
 };
 
+template <typename implementation>
 struct reduce
 {
+  implementation m_implementation;
+
+  reduce() {}
+  reduce(const implementation & impl): m_implementation(impl) {}
+
+  template <typename T, size_t N>
+  T process(const array<T,N> & in)
+  {
+    return m_implementation.process(in);
+  }
+
+  template<typename T, size_t N, size_t NN>
+  array<T,N> process( const array< array<T,N>, NN > & input )
+  {
+    array<T,N> output;
+    for (int i = 0; i < N; ++i)
+    {
+      array<T,NN> sub_input;
+      for (int ii = 0; ii < NN; ++ii)
+      {
+        sub_input[ii] = input[ii][i];
+      }
+      output[i] = process(sub_input);
+    }
+    return output;
+  }
+
 #if INDEPENDENT_TYPE_LOOKUP
   template <typename T, size_t N>
   stream<T> operator()( stream< array<T,N> > ) { return stream<T>(); }
@@ -136,12 +164,23 @@ struct square : public map
   T process(const T & in) { return in * in; }
 };
 
-struct sum : public reduce
+struct sum
 {
+  struct implementation
+  {
+    template <typename T, size_t N>
+    T process(const array<T,N> & in)
+    {
+      return std::accumulate(in.begin(), in.end(), 0);
+    }
+  };
+
+  reduce<implementation> m_reduce;
+
   template <typename T, size_t N>
   T process(const array<T,N> & in)
   {
-    return std::accumulate(in.begin(), in.end(), 0);
+    return m_reduce.process(in);
   }
 };
 
@@ -157,6 +196,9 @@ struct constant : public generate<T>
   constant(const T & value): m_value(value) {};
   T process() { return m_value; }
 };
+
+template <typename T>
+constant<T> make_constant( const T & v ) { return constant<T>(v); }
 
 struct sine
 {
