@@ -140,29 +140,61 @@ struct parallel
 
   parallel( Elements... e ): elements(e...) {}
 
+  auto operator()()
+  {
+    return get_output< sizeof...(Elements)-1, NoInput, tuple<Elements...> >::from(elements, NoInput());
+  }
+
   template <typename ... Inputs>
   auto operator()( tuple<Inputs...> inputs )
   {
-    return get_output< sizeof...(Inputs) - 1, Inputs... >::from(elements, inputs );
+    return get_output< sizeof...(Elements)-1, tuple<Inputs...>, tuple<Elements...> >::from(elements, inputs );
   }
 
 private:
-  template <size_t I, typename ...Inputs>
-  struct get_output
+  struct NoInput {};
+  template<size_t> struct Index {};
+
+  template<typename Elem, typename In, size_t I>
+  struct get_elem_output
   {
-    static auto from( tuple<Elements...> elements, tuple<Inputs...> & inputs )
+    static auto from( Elem & elem, const In & inputs, Index<I> )
     {
-      auto output = std::get<I>(elements)( std::get<I>(inputs) );
-      return tuple_cat( get_output<I-1, Inputs...>::from(elements, inputs), make_tuple(output) );
+      return elem( std::get<I>(inputs) );
     }
   };
 
-  template <typename ...Inputs>
-  struct get_output<0, Inputs...>
+  template<typename Elem, size_t I>
+  struct get_elem_output<Elem, NoInput, I>
   {
-    static auto from( tuple<Elements...> elements, tuple<Inputs...> & inputs )
+    static auto from( Elem & elem, const NoInput &, Index<I> )
     {
-      auto output = std::get<0>(elements)( std::get<0>(inputs) );
+      return elem();
+    }
+  };
+
+  template<typename Elem, typename In, size_t I>
+  static auto get_elem_output_from( Elem & elem, const In & inputs, Index<I> index )
+  {
+    return get_elem_output<Elem,In,I>::from(elem, inputs, index);
+  }
+
+  template <size_t I, typename In, typename Elem>
+  struct get_output
+  {
+    static auto from( Elem & elements, const In & inputs )
+    {
+      auto output = get_elem_output_from(std::get<I>(elements), inputs, Index<I>());
+      return tuple_cat( get_output<I-1, In, Elem>::from(elements, inputs), make_tuple(output) );
+    }
+  };
+
+  template <typename In, typename Elem>
+  struct get_output<0, In, Elem>
+  {
+    static auto from( Elem & elements, const In & inputs )
+    {
+      auto output = get_elem_output_from(std::get<0>(elements), inputs, Index<0>());
       return make_tuple(output);
     }
   };
