@@ -158,6 +158,24 @@ struct constant : public generate<T>
   T process() { return m_value; }
 };
 
+struct sine
+{
+  unsigned int m_phase;
+
+  sine(): m_phase(0) {}
+
+  float process( float frequency )
+  {
+    double real_phase = (double) m_phase / std::numeric_limits<unsigned int>::max();
+    double output = std::sin(real_phase * 2 * 3.14);
+
+    unsigned int step = std::numeric_limits<unsigned int>::max() * frequency;
+    m_phase += step;
+
+    return output;
+  }
+};
+
 /////////////// Composites //////////////
 
 template <typename ...Elements>
@@ -458,6 +476,12 @@ struct printer
   }
 };
 
+template<typename T>
+void print( const T & value )
+{
+  printing::printer_for<T>::print(value);
+  cout << endl;
+}
 
 /////////////// Print Flow Types //////////////
 

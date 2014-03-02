@@ -30,15 +30,14 @@ int main()
   //print_stream_type(s2);
 
   auto n3 = serialize( accumulate<2>( accumulate<3>( constant<int>(2) ) ),
-                       //split(),
+                       split(),
                        printer() );
-  auto v3 = n3.process();
+  //auto v3 = n3.process();
 
+  auto x = accumulate<1000>(
+        serialize( constant<double>(1/10.0), sine() ) );
 
-  auto n4 = serialize( constant<array<int,3>>({1,2,3}),
-                       shred( serialize( square(), printer() ) ) );
-
-  //n4.process();
+  print(x.process());
 
   return 0;
 }
