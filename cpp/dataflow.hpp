@@ -179,49 +179,6 @@ struct join
   }
 };
 
-/////////////// Workers ///////////////
-
-struct noise
-{
-  int operator()() { return std::rand(); }
-};
-
-template <typename T>
-struct constant
-{
-  T m_value;
-  constant(const T & value): m_value(value) {};
-  T operator()() { return m_value; }
-};
-
-template <typename T>
-constant<T> make_constant( const T & v ) { return constant<T>(v); }
-
-template <typename T, typename ...TT>
-constant< array<T, sizeof...(TT)+1> > make_constant( const T & v, const TT ... vv )
-{
-  return array<T, sizeof...(TT)+1>({v, vv...});
-}
-
-
-struct sine
-{
-  unsigned int m_phase;
-
-  sine(): m_phase(0) {}
-
-  float operator()( float frequency )
-  {
-    double real_phase = (double) m_phase / std::numeric_limits<unsigned int>::max();
-    double output = std::sin(real_phase * 2 * 3.14);
-
-    unsigned int step = std::numeric_limits<unsigned int>::max() * frequency;
-    m_phase += step;
-
-    return output;
-  }
-};
-
 /////////////// Composites //////////////
 
 template <typename ...Elements>
