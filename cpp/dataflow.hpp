@@ -6,6 +6,8 @@
 #include <initializer_list>
 #include <utility>
 
+#include "meta.hpp"
+
 using namespace std;
 
 namespace streams {
@@ -86,50 +88,6 @@ struct collect
 #endif
 };
 
-struct map
-{
-#if INDEPENDENT_TYPE_LOOKUP
-  template <typename T>
-  stream<T> operator()( stream<T> ) { return stream<T>(); }
-#endif
-};
-
-template <typename implementation>
-struct reduce
-{
-  implementation m_implementation;
-
-  reduce() {}
-  reduce(const implementation & impl): m_implementation(impl) {}
-
-  template <typename T, size_t N>
-  T process(const array<T,N> & in)
-  {
-    return m_implementation.process(in);
-  }
-
-  template<typename T, size_t N, size_t NN>
-  array<T,N> process( const array< array<T,N>, NN > & input )
-  {
-    array<T,N> output;
-    for (int i = 0; i < N; ++i)
-    {
-      array<T,NN> sub_input;
-      for (int ii = 0; ii < NN; ++ii)
-      {
-        sub_input[ii] = input[ii][i];
-      }
-      output[i] = process(sub_input);
-    }
-    return output;
-  }
-
-#if INDEPENDENT_TYPE_LOOKUP
-  template <typename T, size_t N>
-  stream<T> operator()( stream< array<T,N> > ) { return stream<T>(); }
-#endif
-};
-
 struct split
 {
 #if INDEPENDENT_TYPE_LOOKUP
@@ -158,30 +116,29 @@ struct generate
 #endif
 };
 
-struct square : public map
+struct square_impl
 {
   template <typename T>
   T process(const T & in) { return in * in; }
 };
 
-struct sum
+struct square : map<square_impl>
 {
-  struct implementation
-  {
-    template <typename T, size_t N>
-    T process(const array<T,N> & in)
-    {
-      return std::accumulate(in.begin(), in.end(), 0);
-    }
-  };
+  square(): map(square_impl()) {}
+};
 
-  reduce<implementation> m_reduce;
-
+struct sum_impl
+{
   template <typename T, size_t N>
   T process(const array<T,N> & in)
   {
-    return m_reduce.process(in);
+    return std::accumulate(in.begin(), in.end(), 0);
   }
+};
+
+struct sum : reduce<sum_impl>
+{
+  sum(): reduce(sum_impl()) {}
 };
 
 struct noise : public generate<int>
@@ -202,6 +159,12 @@ constant<T> make_constant( const T & v ) { return constant<T>(v); }
 
 template <typename T, typename ...TT>
 constant< array<T, sizeof...(TT)+1> > make_constant( const T & v, const TT ... vv )
+{
+  return array<T, sizeof...(TT)+1>({v, vv...});
+}
+
+template <typename T, typename ...TT>
+array<T, sizeof...(TT)+1> make_array( const T & v, const TT ... vv )
 {
   return array<T, sizeof...(TT)+1>({v, vv...});
 }
