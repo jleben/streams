@@ -13,57 +13,75 @@ namespace printing
 {
 
 template <typename T>
-struct printer_for { static void print( const T & v ) { cout << v; } };
+struct printer
+{
+  const T & value;
+  printer( const T & v ) : value(v) {}
+};
 
 template <>
-struct printer_for<void> { static void print() { cout << "-"; } };
+struct printer<void>
+{};
+
+template <typename T>
+printer<T> printer_for(const T & v) { return printer<T>(v); }
+
+// concrete printing functions
+
+template <typename T>
+std::ostream & operator<< (std::ostream & s, const printer<T> & p)
+{
+  s << p.value;
+  return s;
+}
+
+std::ostream & operator<< (std::ostream & s, const printer<void> & p)
+{
+  s << "-";
+  return s;
+}
+
+// array printing
 
 template <typename T, size_t N>
-struct printer_for<array<T,N>>
+std::ostream & operator<< (std::ostream & s, const printer< array<T,N> > & p)
 {
-  static void print( const array<T,N> & a )
+  s << "[ ";
+  for ( size_t i = 0; i < N; ++i )
   {
-    cout << "[ ";
-    for ( size_t i = 0; i < N; ++i )
-    {
-      if (i > 0)
-        cout << ", ";
-      printer_for<T>::print(a[i]);
-    }
-    cout << " ]";
+    if (i > 0)
+      s << ", ";
+    s << printer_for(p.value[i]);
   }
-};
+  s << " ]";
+  return s;
+}
 
-template<size_t I, typename Tuple>
-struct tuple_printer_for
-{
-  static void print( const Tuple & t )
-  {
-    tuple_printer_for<I-1,Tuple>::print(t);
-    cout << ", ";
-    printer_for<typename tuple_element<I,Tuple>::type>::print( std::get<I>(t) );
-  }
-};
+// tuple printing
 
-template<typename Tuple>
-struct tuple_printer_for<0,Tuple>
+template<size_t I> struct tuple_index {};
+
+template <typename Tuple, size_t I>
+void print_tuple(std::ostream & s, const Tuple & t, tuple_index<I>)
 {
-  static void print( const Tuple & t )
-  {
-    printer_for<typename tuple_element<0,Tuple>::type>::print( std::get<0>(t) );
-  }
-};
+  print_tuple(s, t, tuple_index<I-1>());
+  s << ", ";
+  s << printer_for(std::get<I-1>(t));
+}
+
+template <typename Tuple>
+void print_tuple(std::ostream & s, const Tuple & t, tuple_index<1>)
+{
+  s << printer_for(std::get<0>(t));
+}
 
 template <typename ...T>
-struct printer_for<tuple<T...>>
+std::ostream & operator<< (std::ostream & s, const printer<tuple<T...> > & p)
 {
-  static void print( const tuple<T...> & t )
-  {
-    cout << "< ";
-    tuple_printer_for< sizeof...(T)-1, tuple<T...> >::print(t);
-    cout << " >";
-  }
-};
+  s << "< ";
+  print_tuple(s, p.value, tuple_index<tuple_size<tuple<T...> >::value>());
+  s << " >";
+}
 
 }
 
@@ -71,16 +89,13 @@ struct printer
 {
   void operator()()
   {
-    printing::printer_for<void>::print();
+    cout << "printer: " << printing::printer<void>() << endl;
   }
 
   template <typename T>
   const T & operator()( const T & input )
   {
-    cout << "printer: ";
-    printing::printer_for<T>::print(input);
-    cout << endl;
-
+    cout << "printer: " << printing::printer_for(input) << endl;
     return input;
   }
 
@@ -88,24 +103,21 @@ struct printer
   auto operator()( const T & ... inputs ) -> decltype(make_tuple(inputs...))
   {
     auto t = make_tuple(inputs...);
-
-    cout << "printer: ";
-    printing::printer_for<decltype(t)>::print(t);
-    cout << endl;
-
+    cout << "printer: " << printing::printer_for(t) << endl;
     return t;
   }
 };
 
 template<typename T>
-void print( const T & value )
+auto print( const T & value ) -> decltype(printing::printer_for(value))
 {
-  printing::printer_for<T>::print(value);
-  cout << endl;
+  return printing::printer_for(value);
 }
+
 
 /////////////// Print Flow Types //////////////
 
+#if 0
 template <typename T>
 struct type_printer
 {
@@ -161,6 +173,7 @@ void print_stream_type( const T & s )
   type_printer<T>::print();
   cout << endl;
 }
+#endif
 
 } // namespace streams
 
