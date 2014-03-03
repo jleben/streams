@@ -9,7 +9,7 @@ using namespace streams;
 
 int main()
 {
-#if 0
+#if 1
   auto n = serialize (
         accumulate<2>( accumulate<3>( make_constant(2) ) ),
         split(),
@@ -21,11 +21,6 @@ int main()
 
   //auto s = n();
 #endif
-
-  /*auto n2 = parallelize( serialize(
-                           accumulate<2>( noise() ) ),
-                         serialize(
-                           accumulate<3>( noise() ) ) );*/
 
   auto noiz = parallelize( accumulate<2>( noise() ),
                            accumulate<3>( noise() ) );
@@ -39,9 +34,6 @@ int main()
   cout << "noise fork parallel(square):"; print(noiz2());
   //auto s2 = n2();
 
-  //print_stream_type(s2);
-
-
   auto n3 = serialize( accumulate<2>( make_constant(2) ),
                        split(),
                        fork<2>(),
@@ -49,11 +41,6 @@ int main()
 
   cout << "split, fork, join: ";
   print(n3());
-
-  //auto v3 = n3.process();
-
-  auto x = serialize( accumulate<2>( make_constant( make_array(1,2,3), make_array(-1,-2,-3) ) ),
-                      square() );
 
   //print(x());
 

@@ -323,8 +323,8 @@ private:
     template<typename Inputs>
     static auto process(Elems & e, const Inputs & inputs)
     {
-      return tuple_cat( make_tuple( streams::process(get<I-1>(e), get<I-1>(inputs)) ),
-                        processor<I-1, Elems>::process(e,inputs) );
+      return tuple_cat( processor<I-1, Elems>::process(e,inputs),
+                        make_tuple( streams::process(get<I-1>(e), get<I-1>(inputs)) ) );
     }
   };
 
