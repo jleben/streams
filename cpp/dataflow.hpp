@@ -28,6 +28,12 @@ struct lace<1, tuple<Head, Tail...> >
   typedef tuple<Head, Tail...> type;
 };
 
+template <typename T, typename ...TT>
+array<T, sizeof...(TT)+1> make_array( const T & v, const TT ... vv )
+{
+  return array<T, sizeof...(TT)+1>({v, vv...});
+}
+
 namespace detail
 {
 
@@ -48,11 +54,15 @@ struct tuplicator<1,T>
 
 }
 
-template<typename T, size_t N>
+template<size_t N, typename T>
 auto tuplicate( const T & v )
 {
   return detail::tuplicator<N,T>::value(v);
 }
+
+//
+
+
 
 //
 
@@ -78,6 +88,7 @@ struct array_to_tuple<0, Array>
 
 //
 
+// !!!!!!!!!!!!!!!!!!!!!!! TODO: Use std::ignore instead !!!!!!!!!!!!!!!!!!!!!!
 struct no_input {};
 struct no_output {};
 
@@ -93,16 +104,50 @@ struct output_of<proc, no_input>
   typedef decltype( declval<proc>()() ) type;
 };
 
-template <typename proc_type, typename input_type>
-auto process(proc_type & p, const input_type & input){ return p(input); }
-
-template <typename proc_type>
-auto process(proc_type & p, const no_input & input){ return p(); }
-
 using std::get;
 
 template<size_t I>
 const no_input & get( const no_input & input ) { return input; }
+
+
+////////////// Process Invokation Helpers /////////////
+
+namespace detail
+{
+
+template <size_t I>
+struct processor
+{
+  template <typename P, typename T, typename ...IN>
+  static auto process(P &p, const T & t, const IN & ... in)
+  {
+    return processor<I-1>::process(p, t, get<I-1>(t), in... );
+  }
+};
+
+template <>
+struct processor<0>
+{
+  template <typename P, typename T, typename ...IN>
+  static auto process(P &p, const T & t, const IN & ... in)
+  {
+    return p ( in... );
+  }
+};
+
+}
+
+template <typename proc_type, typename ...input_type>
+auto process(proc_type & p, const input_type & ... input){ return p(input...); }
+
+template <typename proc_type>
+auto process(proc_type & p, const no_input & input){ return p(); }
+
+template <typename proc, typename ...inputs>
+auto process(proc & p, const tuple<inputs...> & t)
+{
+  return detail::processor<sizeof...(inputs)>::process(p, t);
+}
 
 /////////////// Flow Manipulators //////////////
 
@@ -120,46 +165,25 @@ template<size_t N>
 struct fork
 {
   template <typename T>
-  auto operator()( const T & input ) -> decltype(tuplicate<T,N>(input))
+  auto operator()( const T & input ) -> decltype(tuplicate<N>(input))
   {
-    return tuplicate<T,N>(input);
+    return tuplicate<N>(input);
+  }
+
+  template <typename ...T>
+  auto operator()( const T &... input ) -> decltype(tuplicate<N>(make_tuple(input...)))
+  {
+    return tuplicate<N>( make_tuple(input...) );
   }
 };
 
 struct join
 {
   template <typename ...T>
-  auto operator()( const tuple<T...> & input )
+  auto operator()( const T &... input )
   {
-    typedef typename tuple_element< 0, tuple<T...> >::type value_type;
-    typedef array<value_type, sizeof...(T)> output_type;
-    static const size_t count = sizeof...(T);
-
-    output_type output;
-    transfer<sizeof...(T), tuple<T...>, output_type>::process(input, output);
-
-    return output;
+    return make_array(input...);
   }
-
-private:
-  template <size_t I, typename Tuple, typename Array>
-  struct transfer
-  {
-    static void process( const Tuple & t, Array & a )
-    {
-      a[I-1] = get<I-1>(t);
-      transfer<I-1,Tuple,Array>::process(t,a);
-    }
-  };
-
-  template <typename Tuple, typename Array>
-  struct transfer<1, Tuple, Array>
-  {
-    static void process( const Tuple & t, Array & a )
-    {
-      a[0] = get<0>(t);
-    }
-  };
 };
 
 /////////////// Workers ///////////////
@@ -211,11 +235,6 @@ constant< array<T, sizeof...(TT)+1> > make_constant( const T & v, const TT ... v
   return array<T, sizeof...(TT)+1>({v, vv...});
 }
 
-template <typename T, typename ...TT>
-array<T, sizeof...(TT)+1> make_array( const T & v, const TT ... vv )
-{
-  return array<T, sizeof...(TT)+1>({v, vv...});
-}
 
 struct sine
 {
@@ -262,7 +281,7 @@ private:
     static auto process( Elems & elements, const Input & input )
     {
       auto temp = processor<I-1, Elems, Input>::process( elements, input );
-      return std::get<I>(elements)(temp);
+      return streams::process(std::get<I>(elements), temp);
     }
   };
 
@@ -271,16 +290,7 @@ private:
   {
     static auto process( Elems & elements, const Input & input )
     {
-      return std::get<0>(elements)( input );
-    }
-  };
-
-  template <typename Elems>
-  struct processor<0, Elems, no_input>
-  {
-    static auto process( Elems & elements, no_input )
-    {
-      return std::get<0>(elements)();
+      return streams::process(std::get<0>(elements), input);
     }
   };
 };
@@ -300,34 +310,53 @@ struct parallel
 
   auto operator()()
   {
-    return output_for<sizeof...(Elements)-1, tuple<Elements...>, no_input>::value(elements, no_input());
+    return no_input_processor<sizeof...(Elements), tuple<Elements...> >::process(elements);
   }
 
   template <typename ...Input>
-  auto operator()(const tuple<Input...> & input)
+  auto operator()(Input & ... input)
   {
-    return output_for< sizeof...(Elements)-1, tuple<Elements...>, tuple<Input...> >::value(elements, input);
+    return processor<sizeof...(Elements), tuple<Elements...> >::process(elements, make_tuple(input...));
   }
 
 private:
-
-  template <size_t I, typename Elems, typename Input>
-  struct output_for
+  template <size_t I, typename Elems>
+  struct processor
   {
-    static auto value(Elems e, const Input & input)
+    template<typename Inputs>
+    static auto process(Elems & e, const Inputs & inputs)
     {
-      return tuple_cat(
-            output_for<I-1,Elems,Input>::value(e, input),
-            make_tuple( process(std::get<I>(e), get<I>(input)) ) );
+      return tuple_cat( make_tuple( streams::process(get<I-1>(e), get<I-1>(inputs)) ),
+                        processor<I-1, Elems>::process(e,inputs) );
     }
   };
 
-  template <typename Elems, typename Input>
-  struct output_for<0,Elems,Input>
+  template <typename Elems>
+  struct processor<1,Elems>
   {
-    static auto value(Elems e, const Input & input)
+    template<typename Input>
+    static auto process(Elems & e, const Input & inputs)
     {
-      return make_tuple( process(std::get<0>(e), get<0>(input)) );
+      return make_tuple( streams::process(get<0>(e), get<0>(inputs)) );
+    }
+  };
+
+  template <size_t I, typename Elems>
+  struct no_input_processor
+  {
+    static auto process(Elems & e)
+    {
+      return tuple_cat( no_input_processor<I-1,Elems>::process(e),
+                        make_tuple( get<I-1>(e)() ) );
+    }
+  };
+
+  template <typename Elems>
+  struct no_input_processor<1,Elems>
+  {
+    static auto process(Elems & e)
+    {
+      return make_tuple( get<0>(e)() );
     }
   };
 };

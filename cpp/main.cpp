@@ -9,7 +9,7 @@ using namespace streams;
 
 int main()
 {
-#if 1
+#if 0
   auto n = serialize (
         accumulate<2>( accumulate<3>( make_constant(2) ) ),
         split(),
@@ -20,21 +20,34 @@ int main()
   print(n());
 
   //auto s = n();
+#endif
 
-  auto n2 = parallelize( serialize(
+  /*auto n2 = parallelize( serialize(
                            accumulate<2>( noise() ) ),
                          serialize(
-                           accumulate<3>( noise() ) ) );
+                           accumulate<3>( noise() ) ) );*/
+
+  auto noiz = parallelize( accumulate<2>( noise() ),
+                           accumulate<3>( noise() ) );
+
+  cout << "parallel(accumulate(noise))"; print(noiz());
+
+  auto noiz2 = serialize (noise(),
+                          fork<2>(),
+                          parallelize( square(),
+                                       square() ) );
+  cout << "noise fork parallel(square):"; print(noiz2());
   //auto s2 = n2();
 
   //print_stream_type(s2);
-#endif
+
 
   auto n3 = serialize( accumulate<2>( make_constant(2) ),
                        split(),
                        fork<2>(),
                        join() );
 
+  cout << "split, fork, join: ";
   print(n3());
 
   //auto v3 = n3.process();
@@ -47,9 +60,8 @@ int main()
   print( experiment::sum(make_array(1,2), make_array(1,2), make_array(1,2)) );
   print( experiment::sum(make_array(1,2,3)) );
 
-  //auto y = experiment::detail::reduce([](int a, int b){return a+b;}, 1, 2, 3 );
-  //print(y);
-  //cout << experiment::sum(make_array(1,2), make_array(3,4)) << endl;
+  //print( serialize( make_constant(make_tuple(1,2,3)), join() )() );
+
 
   return 0;
 }
