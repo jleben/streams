@@ -13,13 +13,13 @@ public:
   reduce( F f ): f(f) {}
 
   template <typename T, size_t N>
-  T process(const array<T,N> & input)
+  T operator()(const array<T,N> & input)
   {
-    return f.process(input);
+    return f(input);
   }
 
   template <typename T, size_t N, size_t NN>
-  array<T,N> process( const array< array<T,N>, NN > & input )
+  array<T,N> operator()( const array< array<T,N>, NN > & input )
   {
     array<T,N> output;
     for (int i = 0; i < N; ++i)
@@ -29,7 +29,7 @@ public:
       {
         sub_input[ii] = input[ii][i];
       }
-      output[i] = process(sub_input);
+      output[i] = (*this)(sub_input);
     }
     return output;
   }
@@ -44,18 +44,18 @@ public:
   map( F f ): f(f) {}
 
   template <typename T>
-  T process(const T & input)
+  T operator()(const T & input)
   {
-    return f.process(input);
+    return f(input);
   }
 
   template <typename T, size_t N>
-  array<T,N> process(const array<T,N> & input)
+  array<T,N> operator()(const array<T,N> & input)
   {
     array<T,N> output;
     for (int i = 0; i < N; ++i)
     {
-      output[i] = process(input[i]);
+      output[i] = (*this)(input[i]);
     }
     return output;
   }

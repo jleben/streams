@@ -58,13 +58,13 @@ struct no_output {};
 template<typename proc, typename input>
 struct output_of
 {
-  typedef decltype( declval<proc>().process( declval<input>() ) ) type;
+  typedef decltype( declval<proc>()( declval<input>() ) ) type;
 };
 
 template<typename proc>
 struct output_of<proc, no_input>
 {
-  typedef decltype( declval<proc>().process() ) type;
+  typedef decltype( declval<proc>()() ) type;
 };
 
 /////////////// Flow Manipulators //////////////
@@ -72,7 +72,7 @@ struct output_of<proc, no_input>
 struct split
 {
   template <typename T, size_t N>
-  auto process( const array<T,N> & input )
+  auto operator()( const array<T,N> & input )
   -> decltype( array_to_tuple< N-1, array<T,N> >::value(input) )
   {
     return array_to_tuple< N-1, array<T,N> >::value(input);
@@ -84,7 +84,7 @@ struct split
 struct square_impl
 {
   template <typename T>
-  T process(const T & in) { return in * in; }
+  T operator()(const T & in) { return in * in; }
 };
 
 struct square : map<square_impl>
@@ -95,7 +95,7 @@ struct square : map<square_impl>
 struct sum_impl
 {
   template <typename T, size_t N>
-  T process(const array<T,N> & in)
+  T operator()(const array<T,N> & in)
   {
     return std::accumulate(in.begin(), in.end(), 0);
   }
@@ -108,7 +108,7 @@ struct sum : reduce<sum_impl>
 
 struct noise
 {
-  int process() { return std::rand(); }
+  int operator()() { return std::rand(); }
 };
 
 template <typename T>
@@ -116,7 +116,7 @@ struct constant
 {
   T m_value;
   constant(const T & value): m_value(value) {};
-  T process() { return m_value; }
+  T operator()() { return m_value; }
 };
 
 template <typename T>
@@ -140,7 +140,7 @@ struct sine
 
   sine(): m_phase(0) {}
 
-  float process( float frequency )
+  float operator()( float frequency )
   {
     double real_phase = (double) m_phase / std::numeric_limits<unsigned int>::max();
     double output = std::sin(real_phase * 2 * 3.14);
@@ -161,13 +161,13 @@ struct series
 
   series( Elements... e ): elements(e...) {}
 
-  auto process()
+  auto operator()()
   {
     return processor< sizeof...(Elements)-1, tuple<Elements...>, no_input >::process(elements, no_input());
   }
 
   template <typename Input>
-  auto process( const Input & input )
+  auto operator()( const Input & input )
   {
     return processor< sizeof...(Elements)-1, tuple<Elements...>, Input >::process(elements, input);
   }
@@ -179,7 +179,7 @@ private:
     static auto process( Elems & elements, const Input & input )
     {
       auto temp = processor<I-1, Elems, Input>::process( elements, input );
-      return std::get<I>(elements).process(temp);
+      return std::get<I>(elements)(temp);
     }
   };
 
@@ -188,7 +188,7 @@ private:
   {
     static auto process( Elems & elements, const Input & input )
     {
-      return std::get<0>(elements).process( input );
+      return std::get<0>(elements)( input );
     }
   };
 
@@ -197,7 +197,7 @@ private:
   {
     static auto process( Elems & elements, no_input )
     {
-      return std::get<0>(elements).process();
+      return std::get<0>(elements)();
     }
   };
 };
@@ -229,12 +229,12 @@ struct accumulator
 
   accumulator(const Element & elem): m_element(elem) {}
 
-  array<typename output_of<Element, no_input>::type, N> process()
+  array<typename output_of<Element, no_input>::type, N> operator()()
   {
     array<typename output_of<Element, no_input>::type, N> output;
     for (size_t i = 0; i < N; ++i)
     {
-      output[i] = m_element.process();
+      output[i] = m_element();
     }
     return output;
   }
@@ -254,11 +254,11 @@ struct shredder
   shredder(const Element & elem): m_element(elem) {}
 
   template <typename T, size_t N>
-  void process( const array<T,N> & input )
+  void operator()( const array<T,N> & input )
   {
     for (size_t i = 0; i < N; ++i)
     {
-      m_element.process( input[i] );
+      m_element( input[i] );
     }
   }
 };

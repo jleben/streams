@@ -39,7 +39,7 @@ int main()
   auto x = serialize( accumulate<2>( make_constant( make_array(1,2,3), make_array(-1,-2,-3) ) ),
                       square() );
 
-  print(x.process());
+  print(x());
 
   return 0;
 }
