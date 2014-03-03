@@ -28,6 +28,32 @@ struct lace<1, tuple<Head, Tail...> >
   typedef tuple<Head, Tail...> type;
 };
 
+namespace detail
+{
+
+template<size_t I, typename T>
+struct tuplicator
+{
+  static auto value(const T & v)
+  {
+    return tuple_cat( tuplicator<I-1,T>::value(v), make_tuple(v) );
+  }
+};
+
+template<typename T>
+struct tuplicator<1,T>
+{
+  static auto value(const T & v) { return make_tuple(v); }
+};
+
+}
+
+template<typename T, size_t N>
+auto tuplicate( const T & v )
+{
+  return detail::tuplicator<N,T>::value(v);
+}
+
 //
 
 template<size_t I, typename Array>
@@ -88,6 +114,52 @@ struct split
   {
     return array_to_tuple< N-1, array<T,N> >::value(input);
   }
+};
+
+template<size_t N>
+struct fork
+{
+  template <typename T>
+  auto operator()( const T & input ) -> decltype(tuplicate<T,N>(input))
+  {
+    return tuplicate<T,N>(input);
+  }
+};
+
+struct join
+{
+  template <typename ...T>
+  auto operator()( const tuple<T...> & input )
+  {
+    typedef typename tuple_element< 0, tuple<T...> >::type value_type;
+    typedef array<value_type, sizeof...(T)> output_type;
+    static const size_t count = sizeof...(T);
+
+    output_type output;
+    transfer<sizeof...(T), tuple<T...>, output_type>::process(input, output);
+
+    return output;
+  }
+
+private:
+  template <size_t I, typename Tuple, typename Array>
+  struct transfer
+  {
+    static void process( const Tuple & t, Array & a )
+    {
+      a[I-1] = get<I-1>(t);
+      transfer<I-1,Tuple,Array>::process(t,a);
+    }
+  };
+
+  template <typename Tuple, typename Array>
+  struct transfer<1, Tuple, Array>
+  {
+    static void process( const Tuple & t, Array & a )
+    {
+      a[0] = get<0>(t);
+    }
+  };
 };
 
 /////////////// Workers ///////////////

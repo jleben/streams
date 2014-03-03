@@ -30,9 +30,13 @@ int main()
   //print_stream_type(s2);
 #endif
 
-  auto n3 = serialize( accumulate<2>( accumulate<3>( constant<int>(2) ) ),
+  auto n3 = serialize( accumulate<2>( make_constant(2) ),
                        split(),
-                       printer() );
+                       fork<2>(),
+                       join() );
+
+  print(n3());
+
   //auto v3 = n3.process();
 
   auto x = serialize( accumulate<2>( make_constant( make_array(1,2,3), make_array(-1,-2,-3) ) ),
@@ -40,9 +44,11 @@ int main()
 
   //print(x());
 
-  auto v = experiment::sum(make_array(1,2), make_array(3,4));
-  print(v);
+  print( experiment::sum(make_array(1,2), make_array(1,2), make_array(1,2)) );
+  print( experiment::sum(make_array(1,2,3)) );
 
+  //auto y = experiment::detail::reduce([](int a, int b){return a+b;}, 1, 2, 3 );
+  //print(y);
   //cout << experiment::sum(make_array(1,2), make_array(3,4)) << endl;
 
   return 0;
