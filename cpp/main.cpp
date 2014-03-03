@@ -1,5 +1,6 @@
 #include "dataflow.hpp"
-#include "experiment.hpp"
+#include "processors.hpp"
+//#include "experiment.hpp"
 
 #include <iostream>
 #include <array>
@@ -44,8 +45,8 @@ int main()
 
   //print(x());
 
-  print( experiment::sum(make_array(1,2), make_array(1,2), make_array(1,2)) );
-  print( experiment::sum(make_array(1,2,3)) );
+  //print( experiment::sum(make_array(1,2), make_array(1,2), make_array(1,2)) );
+  //print( experiment::sum(make_array(1,2,3)) );
 
   //print( serialize( make_constant(make_tuple(1,2,3)), join() )() );
 

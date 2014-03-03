@@ -1,4 +1,8 @@
+#ifndef STREAMS_EXPERIMENTAL_INCLUDED
+#define STREAMS_EXPERIMENTAL_INCLUDED
+
 #include <array>
+#include <utility>
 
 namespace experiment
 {
@@ -32,10 +36,27 @@ T reduce( F f, const array<T,N> & v )
   return result;
 }
 
+template<typename F>
+struct reducer
+{
+  F f;
+
+public:
+  reducer( F f ): f(f) {}
+
+  template <typename ...T>
+  auto operator()(T... inputs)
+  {
+    return detail::reduce(f, inputs...);
+  }
+};
+
+///
+
 template<size_t N, typename First, typename Second>
 auto operator+(array<First,N> first, array<Second,N> second)
 {
-  typedef decltype( declval<First>() + declval<Second>() ) Result;
+  typedef decltype( std::declval<First>() + std::declval<Second>() ) Result;
 
   array<Result, N> output;
   for (size_t i = 0; i < N; ++i)
@@ -56,6 +77,15 @@ struct sum
 
 }
 
+namespace proc {
+
+struct sum : detail::reducer<detail::sum>
+{
+  sum(): detail::reducer<detail::sum>(detail::sum()) {}
+};
+
+}
+
 template <typename ...T>
 auto sum( T... input )
 {
@@ -63,3 +93,5 @@ auto sum( T... input )
 }
 
 }
+
+#endif // STREAMS_EXPERIMENTAL_INCLUDED

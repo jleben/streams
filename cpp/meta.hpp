@@ -1,47 +1,64 @@
+#ifndef STREAMS_META_INCLUDED
+#define STREAMS_META_INCLUDED
+
 #include <array>
+#include <utility>
 
 namespace streams
 {
 using std::array;
+using std::size_t;
 
-template <typename F>
-class reduce
+namespace detail
+{
+
+template<typename F, typename Head, typename ...Tail>
+auto reduce( F f, Head h, Tail... t)
+{
+  return f(h, reduce(f,t...));
+}
+
+template<typename F, typename Lhs, typename Rhs>
+auto reduce( F f, Lhs lhs, Rhs rhs)
+{
+  return f(lhs, rhs);
+}
+
+template<typename F, typename T, size_t N>
+T reduce( F f, const array<T,N> & v )
+{
+  T result = v[0];
+  for (size_t i = 1; i < N; ++i)
+  {
+    result = f(result, v[i]);
+  }
+  return result;
+}
+
+template<typename F>
+struct reducer
 {
   F f;
 
 public:
-  reduce( F f ): f(f) {}
+  reducer( F f ): f(f) {}
 
-  template <typename T, size_t N>
-  T operator()(const array<T,N> & input)
+  template <typename ...T>
+  auto operator()(T... inputs)
   {
-    return f(input);
-  }
-
-  template <typename T, size_t N, size_t NN>
-  array<T,N> operator()( const array< array<T,N>, NN > & input )
-  {
-    array<T,N> output;
-    for (int i = 0; i < N; ++i)
-    {
-      array<T,NN> sub_input;
-      for (int ii = 0; ii < NN; ++ii)
-      {
-        sub_input[ii] = input[ii][i];
-      }
-      output[i] = (*this)(sub_input);
-    }
-    return output;
+    return detail::reduce(f, inputs...);
   }
 };
 
+///
+
 template <typename F>
-class map
+class mapper
 {
   F f;
 
 public:
-  map( F f ): f(f) {}
+  mapper( F f ): f(f) {}
 
   template <typename T>
   T operator()(const T & input)
@@ -61,4 +78,8 @@ public:
   }
 };
 
-} // namespace streams_meta
+} // namespace detail
+
+} // namespace streams
+
+#endif // STREAMS_META_INCLUDED

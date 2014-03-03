@@ -1,3 +1,5 @@
+#include "meta.hpp"
+
 #include <array>
 #include <tuple>
 #include <cstdlib>
@@ -5,8 +7,6 @@
 #include <algorithm>
 #include <initializer_list>
 #include <utility>
-
-#include "meta.hpp"
 
 using namespace std;
 
@@ -66,10 +66,6 @@ auto tuplicate( const T & v )
 {
   return detail::tuplicator<N,T>::value(v);
 }
-
-//
-
-
 
 //
 
@@ -184,31 +180,6 @@ struct join
 };
 
 /////////////// Workers ///////////////
-
-struct square_impl
-{
-  template <typename T>
-  T operator()(const T & in) { return in * in; }
-};
-
-struct square : map<square_impl>
-{
-  square(): map(square_impl()) {}
-};
-
-struct sum_impl
-{
-  template <typename T, size_t N>
-  T operator()(const array<T,N> & in)
-  {
-    return std::accumulate(in.begin(), in.end(), 0);
-  }
-};
-
-struct sum : reduce<sum_impl>
-{
-  sum(): reduce(sum_impl()) {}
-};
 
 struct noise
 {
