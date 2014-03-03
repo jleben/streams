@@ -67,6 +67,17 @@ struct output_of<proc, no_input>
   typedef decltype( declval<proc>()() ) type;
 };
 
+template <typename proc_type, typename input_type>
+auto process(proc_type & p, const input_type & input){ return p(input); }
+
+template <typename proc_type>
+auto process(proc_type & p, const no_input & input){ return p(); }
+
+using std::get;
+
+template<size_t I>
+const no_input & get( const no_input & input ) { return input; }
+
 /////////////// Flow Manipulators //////////////
 
 struct split
@@ -214,6 +225,39 @@ struct parallel
   tuple<Elements...> elements;
 
   parallel( Elements... e ): elements(e...) {}
+
+  auto operator()()
+  {
+    return output_for<sizeof...(Elements)-1, tuple<Elements...>, no_input>::value(elements, no_input());
+  }
+
+  template <typename ...Input>
+  auto operator()(const tuple<Input...> & input)
+  {
+    return output_for< sizeof...(Elements)-1, tuple<Elements...>, tuple<Input...> >::value(elements, input);
+  }
+
+private:
+
+  template <size_t I, typename Elems, typename Input>
+  struct output_for
+  {
+    static auto value(Elems e, const Input & input)
+    {
+      return tuple_cat(
+            output_for<I-1,Elems,Input>::value(e, input),
+            make_tuple( process(std::get<I>(e), get<I>(input)) ) );
+    }
+  };
+
+  template <typename Elems, typename Input>
+  struct output_for<0,Elems,Input>
+  {
+    static auto value(Elems e, const Input & input)
+    {
+      return make_tuple( process(std::get<0>(e), get<0>(input)) );
+    }
+  };
 };
 
 template <typename ...Elements>
