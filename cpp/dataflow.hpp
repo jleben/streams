@@ -14,6 +14,13 @@ namespace streams {
 
 /////////////// Utilities //////////////
 
+struct ignore {};
+
+using std::get;
+
+template<size_t I>
+const ignore & get( const ignore & input ) { return input; }
+
 template<size_t I, typename T>
 struct lace : lace< I, tuple<T> >
 {};
@@ -88,10 +95,6 @@ struct array_to_tuple<0, Array>
 
 //
 
-// !!!!!!!!!!!!!!!!!!!!!!! TODO: Use std::ignore instead !!!!!!!!!!!!!!!!!!!!!!
-struct no_input {};
-struct no_output {};
-
 template<typename proc, typename input>
 struct output_of
 {
@@ -99,16 +102,10 @@ struct output_of
 };
 
 template<typename proc>
-struct output_of<proc, no_input>
+struct output_of<proc, ignore>
 {
   typedef decltype( declval<proc>()() ) type;
 };
-
-using std::get;
-
-template<size_t I>
-const no_input & get( const no_input & input ) { return input; }
-
 
 ////////////// Process Invokation Helpers /////////////
 
@@ -141,7 +138,7 @@ template <typename proc_type, typename ...input_type>
 auto process(proc_type & p, const input_type & ... input){ return p(input...); }
 
 template <typename proc_type>
-auto process(proc_type & p, const no_input & input){ return p(); }
+auto process(proc_type & p, const ignore & input){ return p(); }
 
 template <typename proc, typename ...inputs>
 auto process(proc & p, const tuple<inputs...> & t)
@@ -265,7 +262,7 @@ struct series
 
   auto operator()()
   {
-    return processor< sizeof...(Elements)-1, tuple<Elements...>, no_input >::process(elements, no_input());
+    return processor< sizeof...(Elements)-1, tuple<Elements...>, ignore >::process(elements, ignore());
   }
 
   template <typename Input>
@@ -374,9 +371,9 @@ struct accumulator
 
   accumulator(const Element & elem): m_element(elem) {}
 
-  array<typename output_of<Element, no_input>::type, N> operator()()
+  array<typename output_of<Element, ignore>::type, N> operator()()
   {
-    array<typename output_of<Element, no_input>::type, N> output;
+    array<typename output_of<Element, ignore>::type, N> output;
     for (size_t i = 0; i < N; ++i)
     {
       output[i] = m_element();
