@@ -69,19 +69,31 @@ struct printer_for<tuple<T...>>
 
 struct printer
 {
-  void process()
+  void operator()()
   {
     printing::printer_for<void>::print();
   }
 
   template <typename T>
-  const T & process( const T & input )
+  const T & operator()( const T & input )
   {
     cout << "printer: ";
     printing::printer_for<T>::print(input);
     cout << endl;
 
     return input;
+  }
+
+  template <typename ...T>
+  auto operator()( const T & ... inputs ) -> decltype(make_tuple(inputs...))
+  {
+    auto t = make_tuple(inputs...);
+
+    cout << "printer: ";
+    printing::printer_for<decltype(t)>::print(t);
+    cout << endl;
+
+    return t;
   }
 };
 
