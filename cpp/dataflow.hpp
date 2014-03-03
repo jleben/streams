@@ -67,37 +67,10 @@ struct output_of<proc, no_input>
   typedef decltype( declval<proc>().process() ) type;
 };
 
-/////////////// Streams ///////////////
-
-#if INDEPENDENT_TYPE_LOOKUP
-template <typename T>
-struct stream
-{
-  typedef T type;
-};
-#endif
-
 /////////////// Flow Manipulators //////////////
-
-template<size_t N>
-struct collect
-{
-#if INDEPENDENT_TYPE_LOOKUP
-  template <typename T>
-  stream< array<T,N> > operator()( stream<T> ) { return stream< array<T,N> >(); }
-#endif
-};
 
 struct split
 {
-#if INDEPENDENT_TYPE_LOOKUP
-  template <typename T, size_t N>
-  auto operator()( stream< array<T,N> > )
-  {
-    typename lace<N,stream<T>>::type output;
-    return output;
-  }
-#endif
   template <typename T, size_t N>
   auto process( const array<T,N> & input )
   -> decltype( array_to_tuple< N-1, array<T,N> >::value(input) )
@@ -107,14 +80,6 @@ struct split
 };
 
 /////////////// Workers ///////////////
-
-template <typename T>
-struct generate
-{
-#if INDEPENDENT_TYPE_LOOKUP
-  stream<T> operator()() { return stream<T>(); }
-#endif
-};
 
 struct square_impl
 {
@@ -141,13 +106,13 @@ struct sum : reduce<sum_impl>
   sum(): reduce(sum_impl()) {}
 };
 
-struct noise : public generate<int>
+struct noise
 {
   int process() { return std::rand(); }
 };
 
 template <typename T>
-struct constant : public generate<T>
+struct constant
 {
   T m_value;
   constant(const T & value): m_value(value) {};
@@ -196,18 +161,6 @@ struct series
 
   series( Elements... e ): elements(e...) {}
 
-#if INDEPENDENT_TYPE_LOOKUP
-  auto operator()()
-  {
-    return get_output<sizeof...(Elements)-1, no_input, tuple<Elements...>>::from(elements, no_input());
-  }
-
-  template <typename Input>
-  auto operator()( Input input )
-  {
-    return get_output<sizeof...(Elements)-1, Input, tuple<Elements...>>::from(elements, input);
-  }
-#endif
   auto process()
   {
     return processor< sizeof...(Elements)-1, tuple<Elements...>, no_input >::process(elements, no_input());
@@ -247,36 +200,6 @@ private:
       return std::get<0>(elements).process();
     }
   };
-
-#if INDEPENDENT_TYPE_LOOKUP
-  template <size_t I, typename Input, typename Elem>
-  struct get_output
-  {
-    static auto from( Elem & elements, const Input & input )
-    {
-      auto intermediate = get_output<I-1, Input, Elem>::from(elements, input);
-      return std::get<I>(elements)(intermediate);
-    }
-  };
-
-  template <typename Input, typename Elem>
-  struct get_output<0, Input, Elem>
-  {
-    static auto from( Elem & elements, const Input & input )
-    {
-      return std::get<0>(elements)(input);
-    }
-  };
-
-  template <typename Elem>
-  struct get_output<0, no_input, Elem>
-  {
-    static auto from( Elem & elements, const no_input & input )
-    {
-      return std::get<0>(elements)();
-    }
-  };
-#endif
 };
 
 template <typename ...Elements>
@@ -291,69 +214,6 @@ struct parallel
   tuple<Elements...> elements;
 
   parallel( Elements... e ): elements(e...) {}
-
-#if INDEPENDENT_TYPE_LOOKUP
-  auto operator()()
-  {
-    return get_output< sizeof...(Elements)-1, NoInput, tuple<Elements...> >::from(elements, NoInput());
-  }
-
-  template <typename ... Inputs>
-  auto operator()( tuple<Inputs...> inputs )
-  {
-    return get_output< sizeof...(Elements)-1, tuple<Inputs...>, tuple<Elements...> >::from(elements, inputs );
-  }
-#endif
-
-private:
-#if INDEPENDENT_TYPE_LOOKUP
-  struct NoInput {};
-  template<size_t> struct Index {};
-
-  template<typename Elem, typename In, size_t I>
-  struct get_elem_output
-  {
-    static auto from( Elem & elem, const In & inputs, Index<I> )
-    {
-      return elem( std::get<I>(inputs) );
-    }
-  };
-
-  template<typename Elem, size_t I>
-  struct get_elem_output<Elem, NoInput, I>
-  {
-    static auto from( Elem & elem, const NoInput &, Index<I> )
-    {
-      return elem();
-    }
-  };
-
-  template<typename Elem, typename In, size_t I>
-  static auto get_elem_output_from( Elem & elem, const In & inputs, Index<I> index )
-  {
-    return get_elem_output<Elem,In,I>::from(elem, inputs, index);
-  }
-
-  template <size_t I, typename In, typename Elem>
-  struct get_output
-  {
-    static auto from( Elem & elements, const In & inputs )
-    {
-      auto output = get_elem_output_from(std::get<I>(elements), inputs, Index<I>());
-      return tuple_cat( get_output<I-1, In, Elem>::from(elements, inputs), make_tuple(output) );
-    }
-  };
-
-  template <typename In, typename Elem>
-  struct get_output<0, In, Elem>
-  {
-    static auto from( Elem & elements, const In & inputs )
-    {
-      auto output = get_elem_output_from(std::get<0>(elements), inputs, Index<0>());
-      return make_tuple(output);
-    }
-  };
-#endif
 };
 
 template <typename ...Elements>
@@ -518,19 +378,6 @@ struct type_printer< array<T,N> >
     cout << " )";
   }
 };
-
-#if INDEPENDENT_TYPE_LOOKUP
-template <typename T>
-struct type_printer< stream<T> >
-{
-  static void print()
-  {
-    cout << "stream ( ";
-    type_printer<T>::print();
-    cout << " )";
-  }
-};
-#endif
 
 template <typename Head, typename ...Tail>
 struct tuple_printer
