@@ -1,6 +1,8 @@
 #ifndef STREAM_CODE_INCLUDED
 #define STREAM_CODE_INCLUDED
 
+#include "util.hpp"
+
 #include <vector>
 #include <stack>
 #include <iostream>
@@ -9,6 +11,10 @@
 #include <cassert>
 
 namespace stream_code {
+
+using namespace stream_util;
+
+using stream_util::extent;
 
 class context
 {
@@ -84,7 +90,7 @@ struct value
         id(id)
     {}
 
-    value ( const std::string & id, const std::vector<int> & size ):
+    value ( const std::string & id, const extent & size ):
         id(id),
         size(size)
     {}
@@ -94,7 +100,7 @@ struct value
 
     std::string id;
     std::vector<std::string> index;
-    std::vector<int> size;
+    extent size;
 };
 
 typedef std::vector<value> values;

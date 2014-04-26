@@ -2,6 +2,7 @@
 #define STREAMS_GRAPH_INCLUDED
 
 #include "code.hpp"
+#include "util.hpp"
 
 #include <vector>
 #include <list>
@@ -11,27 +12,11 @@
 
 namespace stream_graph {
 
+using namespace stream_util;
+
+using stream_util::extent;
+
 struct node;
-
-typedef std::vector<int> extent;
-
-inline extent operator/ ( const extent & lhs, const extent & rhs)
-{
-    extent result( lhs.size() );
-    for (int i = 0; i < lhs.size(); ++i)
-    {
-        result[i] = lhs[i] / rhs[i];
-    }
-    return result;
-}
-
-inline std::ostream & operator<<( std::ostream & s, const extent & size )
-{
-    s << "< ";
-    for (int i : size)
-        s << i << " ";
-    s << ">";
-}
 
 enum function_type
 {

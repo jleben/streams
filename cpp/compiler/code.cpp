@@ -13,7 +13,7 @@ std::string value::operator*() const
 
     full_index << index.back();
 
-    int period = 1;
+    int period = size.back();
 
     for (int d = index.size() - 2; d >= 0; d--)
     {

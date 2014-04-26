@@ -42,13 +42,18 @@ extent composite_function::output_size( int index )
 
 extent node::input_size(int index)
 {
-    extent size = m_func->input_size(index);
+    extent func_size = m_func->input_size(index);
 
-    assert(size.size() == m_iterations.size() == m_input_rates[index].size());
+    //assert(size.size() == m_iterations.size() == m_input_rates[index].size());
 
-    for (int d = 0; d < size.size(); d++)
+    int dims = max( func_size.count(), m_iterations.count() );
+    extent size(dims);
+
+    for (int d = 0; d < dims; ++d)
     {
-        size[d] = total_iteration_size( m_input_rates[index][d], size[d], m_iterations[d] );
+        size[d] = total_iteration_size( m_input_rates[index].at(d),
+                                        func_size.at(d),
+                                        m_iterations.at(d) );
     }
 
     return size;
@@ -56,12 +61,15 @@ extent node::input_size(int index)
 
 extent node::output_size(int index)
 {
-    extent size = m_func->output_size(index);
+    extent func_size = m_func->output_size(index);
 
-    assert(size.size() == m_iterations.size());
+    //assert(size.size() == m_iterations.size());
 
-    for (int d = 0; d < size.size(); d++)
-        size[d] *= m_iterations[d];
+    int dims = max( func_size.count(), m_iterations.count() );
+    extent size(dims);
+
+    for (int d = 0; d < dims; d++)
+        size[d] *= m_iterations.at(d);
 
     return size;
 }
@@ -70,23 +78,26 @@ extent node::output_size(int index)
 bool node::can_merge(node * other_node , bool downstream )
 {
     // Iteration counts must be divisible:
-
+#if 0
     if (other_node->m_iterations.size() != m_iterations.size())
     {
         cout << "Iteration dimension mismatch." << endl;
         return false;
     }
-
-    for (int d = 0; d < m_iterations.size(); ++d)
+#endif
+    int dims = max (m_iterations.count(), other_node->m_iterations.count());
+    for (int d = 0; d < dims; ++d)
     {
-        if (other_node->m_iterations[d] % m_iterations[d] != 0)
+        if (other_node->m_iterations.at(d) % m_iterations.at(d) != 0)
         {
             cout << "Iteration not divisible." << endl;
             return false;
         }
     }
 
-    extent new_iterations = other_node->m_iterations / m_iterations;
+    extent new_iterations(dims);
+    for (int d = 0; d < dims; ++d)
+        new_iterations[d] = other_node->m_iterations.at(d) / m_iterations.at(d);
 
     if (downstream)
     {
@@ -105,12 +116,17 @@ bool node::can_merge(node * other_node , bool downstream )
             const extent & other_func_in_size = other_node->func()->input_size(i);
             const extent & other_in_rates = other_node->input_rates()[i];
 
-            assert( func_out_size.size() == other_func_in_size.size() == other_in_rates.size() );
+            //assert( func_out_size.size() == other_func_in_size.size() == other_in_rates.size() );
 
-            for ( int d = 0; d < func_out_size.size(); d++)
+            int dims = max( func_out_size.count(), other_func_in_size.count() );
+            dims = max( dims, new_iterations.count() );
+
+            for ( int d = 0; d < dims; d++)
             {
-                int new_func_size = total_iteration_size( other_in_rates[d], other_func_in_size[d], new_iterations[d] );
-                if (new_func_size != func_out_size[d])
+                int new_func_size = total_iteration_size( other_in_rates.at(d),
+                                                          other_func_in_size.at(d),
+                                                          new_iterations.at(d) );
+                if ( new_func_size != func_out_size.at(d) )
                 {
                     cout << "Stream format mismatch." << endl;
                     return false;
@@ -134,12 +150,15 @@ bool node::can_merge(node * other_node , bool downstream )
             const extent & func_in_size = func()->input_size(i);
             const extent & other_func_out_size = other_node->func()->output_size(i);
 
-            assert( func_in_size.size() == other_func_out_size.size() );
+            //assert( func_in_size.size() == other_func_out_size.size() );
 
-            for ( int d = 0; d < func_in_size.size(); d++)
+            int dims = max( func_in_size.count(), other_func_out_size.count() );
+            dims = max( dims, new_iterations.count() );
+
+            for ( int d = 0; d < dims; d++)
             {
-                int new_func_size = new_iterations[d] * other_func_out_size[d];
-                if (new_func_size != func_in_size[d])
+                int new_func_size = new_iterations.at(d) * other_func_out_size.at(d);
+                if (new_func_size != func_in_size.at(d))
                 {
                     cout << "Stream format mismatch." << endl;
                     return false;
@@ -168,10 +187,20 @@ void node::merge(node *other, bool downstream)
 
     // convert
 
-    other->m_iterations = other->m_iterations / m_iterations;
+    int dims = max (m_iterations.count(), other->m_iterations.count());
+
+    extent new_iterations(dims);
+    for (int d = 0; d < dims; ++d)
+        new_iterations[d] = other->m_iterations.at(d) / m_iterations.at(d);
+    other->m_iterations = new_iterations;
+
 
     // move
 
+    // TODO: should be done by whoever is merging,
+    // i.e. enclosing composite_function itself
+
+#if 0
     if (other->m_parent)
     {
         assert( other->m_parent->is_composite() );
@@ -182,7 +211,7 @@ void node::merge(node *other, bool downstream)
 
         // TODO: Confirm that data flow format in parent is correct.
     }
-
+#endif
     other->m_parent = this;
 
     if (downstream)
@@ -325,6 +354,8 @@ void node::generate( const stream_code::values & inputs,
 
     stream_code::values indexed_inputs = inputs;
     stream_code::values & indexed_outputs = outputs;
+
+    // FIXME: take iteration rates into account (instead of assuming 1);
 
     auto work = [&]( const vector<string> & indexes )
     {
