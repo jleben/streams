@@ -347,10 +347,10 @@ void for_each( const extent & counts,
 #endif
 
 
-void add_indexes ( stream_code::value & value,
-                   const vector<string> & indexes,
-                   const extent & rates,
-                   stream_code::context & ctx )
+void node::add_indexes ( stream_code::value & value,
+                         const vector<string> & indexes,
+                         const extent & rates,
+                         stream_code::context & ctx )
 {
     // FIXME: take iteration rates into account (instead of assuming 1);
     for (int d = 0; d < indexes.size(); ++d)

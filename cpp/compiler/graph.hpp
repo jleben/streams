@@ -131,6 +131,11 @@ struct node : public stream_code::generator
         return v;
     }
 
+    static void add_indexes ( stream_code::value & value,
+                              const std::vector<std::string> & indexes,
+                              const extent & rates,
+                              stream_code::context & ctx );
+
 private:
     int total_iteration_size( int hop, int window, int count )
     {

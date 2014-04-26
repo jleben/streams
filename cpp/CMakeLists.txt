@@ -3,7 +3,7 @@
 set(compiler_src
   compiler/graph.cpp
   compiler/code.cpp
-  #compiler/kernel.cpp
+  compiler/kernel.cpp
 )
 
 #add_executable(test_compiler ${compiler_src} test_compiler.cpp )
