@@ -311,7 +311,7 @@ void for_each( const extent & counts,
         }
         indexes.push_back(index);
 
-        ctx << "for (" << index << " = 0; "
+        ctx << "for (int " << index << " = 0; "
             << index << " < " << counts[dimension] << "; "
             << index << "++" << ")" << endl;
 
@@ -346,6 +346,47 @@ void for_each( const extent & counts,
 }
 #endif
 
+
+void add_indexes ( stream_code::value & value,
+                   const vector<string> & indexes,
+                   const extent & rates,
+                   stream_code::context & ctx )
+{
+    // FIXME: take iteration rates into account (instead of assuming 1);
+    for (int d = 0; d < indexes.size(); ++d)
+    {
+        if (d >= value.index.size())
+            value.index.push_back(string());
+
+        const string & index = indexes[d];
+        if (!index.size())
+            continue;
+
+        bool previous_index = value.index[d].size();
+        int rate = rates.at(d);
+
+        if (previous_index || rate != 1)
+        {
+            ostringstream relative_index;
+            relative_index << "i" << ctx.next_id_index() << "_" << d;
+
+            ctx << "int " << relative_index.str() << " = ";
+            if (previous_index)
+                ctx << value.index[d] << " + ";
+            ctx << index;
+            if (rate != 1)
+                ctx << " * " << rate;
+            ctx << stream_code::endl;
+
+            value.index[d] = relative_index.str();
+        }
+        else
+        {
+            value.index[d] = index;
+        }
+    }
+};
+
 void node::generate( const stream_code::values & inputs,
                      stream_code::values & outputs,
                      stream_code::context & ctx )
@@ -355,37 +396,21 @@ void node::generate( const stream_code::values & inputs,
     stream_code::values indexed_inputs = inputs;
     stream_code::values & indexed_outputs = outputs;
 
-    // FIXME: take iteration rates into account (instead of assuming 1);
+
 
     auto work = [&]( const vector<string> & indexes )
     {
+        int i = 0;
         for ( stream_code::value & in : indexed_inputs )
         {
-            for (int i = 0; i < indexes.size(); ++i)
-            {
-                const string & index = indexes[i];
-                if (i >= in.index.size())
-                    in.index.push_back(string());
-                if (!index.size())
-                    continue;
-                if (in.index[i].size())
-                    in.index[i] += " + ";
-                in.index[i] += index;
-            }
+            add_indexes(in, indexes, m_input_rates[i], ctx);
+            ++i;
         }
+        i = 0;
         for ( stream_code::value & out : indexed_outputs )
         {
-            for (int i = 0; i < indexes.size(); ++i)
-            {
-                const string & index = indexes[i];
-                if (i >= out.index.size())
-                    out.index.push_back(string());
-                if (!index.size())
-                    continue;
-                if (out.index[i].size())
-                    out.index[i] += " + ";
-                out.index[i] += index;
-            }
+            add_indexes(out, indexes, m_input_rates[i], ctx);
+            ++i;
         }
 
         m_func->generate(indexed_inputs, indexed_outputs, ctx);
