@@ -4,6 +4,8 @@
 #include "util.hpp"
 #include "graph.hpp"
 
+#include <vector>
+#include <list>
 #include <string>
 #include <CL/cl.hpp>
 
@@ -11,6 +13,7 @@ namespace stream_graph {
 
 using std::vector;
 using std::string;
+using std::list;
 using stream_util::extent;
 
 class kernel
@@ -75,7 +78,7 @@ private:
     std::vector<cl::Device> m_devices;
     cl::Context m_context;
     cl::CommandQueue m_cmd_queue;
-    vector<kernel_data> m_schedule;
+    list<kernel_data> m_schedule;
 };
 
 } // namespace

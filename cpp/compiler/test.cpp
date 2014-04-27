@@ -19,7 +19,11 @@ int main()
     node *a = new node( new scalar_op("*", 2) );
     a->iterations() = { 5 };
 
+    node *b = new node( new scalar_op("+", 3) );
+    b->iterations() = { 5 };
+
     f.children.push_back( a );
+    f.children.push_back( b );
     //f.children.push_back( new node( new scalar_op("*", 2) ) );
     //f.children.push_back( new node( new scalar_op("+", 3) ) );
 
