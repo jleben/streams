@@ -166,6 +166,8 @@ bool node::can_merge(node * other_node , bool downstream )
             }
         }
     }
+
+    return true;
 }
 
 void node::merge(node *other, bool downstream)
