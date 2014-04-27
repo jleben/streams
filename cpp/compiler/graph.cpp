@@ -69,7 +69,7 @@ extent node::output_size(int index)
     extent size(dims);
 
     for (int d = 0; d < dims; d++)
-        size[d] *= m_iterations.at(d);
+        size[d] = func_size.at(d) * m_iterations.at(d);
 
     return size;
 }
@@ -303,12 +303,10 @@ void for_each( const extent & counts,
 
         ctx.push();
 
-        int unique_id = ctx.next_id_index();
-
         string index;
         {
             ostringstream index_stream;
-            index_stream << "d" << unique_id << "_" << dimension;
+            index_stream << ctx.unique_id("d") << "_" << dimension;
             index = index_stream.str();
         }
         indexes.push_back(index);
@@ -370,7 +368,7 @@ void node::add_indexes ( stream_code::value & value,
         if (previous_index || rate != 1)
         {
             ostringstream relative_index;
-            relative_index << "i" << ctx.next_id_index() << "_" << d;
+            relative_index << ctx.unique_id("i") << "_" << d;
 
             ctx << "int " << relative_index.str() << " = ";
             if (previous_index)

@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <stack>
+#include <map>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -23,7 +24,7 @@ public:
         m_code(code),
         m_indent(0)
     {
-        m_ids.push(0);
+        m_ids.emplace();
     }
 
     std::string line() { return m_buffer.str(); }
@@ -41,9 +42,12 @@ public:
     void indent() { m_indent++; }
     void unindent() { m_indent--; }
 
-    int next_id_index()
+    std::string unique_id( const std::string & id )
     {
-        return m_ids.top()++;
+        std::ostringstream out;
+        out << id;
+        out << m_ids.top()[id]++;
+        return out.str();
     }
 
     void endl()
@@ -70,7 +74,7 @@ public:
 private:
     std::ostream & m_code;
     std::ostringstream m_buffer;
-    std::stack<int> m_ids;
+    std::stack< std::map<std::string, int> > m_ids;
     int m_indent;
 };
 
