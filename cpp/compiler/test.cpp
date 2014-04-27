@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 {
     using stream_util::extent;
 
-    int global_iteration_count = (int) 1e7;
+    int global_iteration_count = (int) 1e6;
 
     if (argc > 1)
         global_iteration_count = atoi(argv[1]);
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
     cout << "Iteration count: " << global_iteration_count << endl;
 
-    extent iterations = { global_iteration_count };
+    extent iterations = { global_iteration_count, 5, 5 };
 
     composite_function f;
 
