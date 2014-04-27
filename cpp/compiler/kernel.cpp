@@ -156,7 +156,7 @@ bool kernel::run( std::vector<extent> & input_offsets,
                   std::vector<extent> & outputs_offsets,
                   cl::CommandQueue & cmd_queue )
 {
-    return true;
+    return false;
 }
 
 bool kernel::run( cl::CommandQueue & cmd_queue )
