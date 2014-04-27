@@ -378,7 +378,7 @@ void node::add_indexes ( stream_code::value & value,
             ctx << index;
             if (rate != 1)
                 ctx << " * " << rate;
-            ctx << stream_code::endl;
+            ctx << ";" << stream_code::endl;
 
             value.index[d] = relative_index.str();
         }
