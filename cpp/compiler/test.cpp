@@ -28,9 +28,7 @@ int main()
     loop.input_rates() = { {5} };
     loop.iterations() = { 10, 2 };
 
-    kernel k("krnl", &loop);
-
-    cout << k.code();
+    cout << kernel::code("krnl", &loop);
 
 
     // Init OpenCL:
@@ -59,7 +57,9 @@ int main()
       return 1;
 
 
-    cout << "compilation: " << k.compile(context, devices);
+    kernel k("krnl", &loop, context, devices);
+
+    cout << "compilation: " << !k.error();
 
 #if 0
     cl::CommandQueue cmd_queue(context, devices[0], 0, &err);

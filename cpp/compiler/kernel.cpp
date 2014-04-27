@@ -11,7 +11,7 @@ namespace stream_graph {
 using namespace stream_code;
 using namespace stream_util;
 
-string kernel::code()
+string kernel::code( const string & kernel_name, node *node )
 {
     // TODO: allow values to originate from outside
     // (if larger than this kernel's IO range).
@@ -24,7 +24,7 @@ string kernel::code()
     // Generate IO names
 
     vector<string> input_names;
-    for (int i = 0; i < m_node->input_count(); ++i)
+    for (int i = 0; i < node->input_count(); ++i)
     {
         ostringstream name;
         name << "input" << i;
@@ -32,7 +32,7 @@ string kernel::code()
     }
 
     vector<string> output_names;
-    for (int i = 0; i < m_node->output_count(); ++i)
+    for (int i = 0; i < node->output_count(); ++i)
     {
         ostringstream name;
         name << "output" << i;
@@ -40,12 +40,12 @@ string kernel::code()
     }
 
     // Create IO values
-    values inputs = m_node->create_input_values(input_names);
-    values outputs = m_node->create_input_values(output_names);
+    values inputs = node->create_input_values(input_names);
+    values outputs = node->create_input_values(output_names);
 
     // Generate declaration
 
-    ctx << "__kernel void " << m_name;
+    ctx << "__kernel void " << kernel_name;
     ctx << "( ";
     bool comma = false;
     for (const string & in : input_names)
@@ -72,7 +72,7 @@ string kernel::code()
     // Initialize indexes
 
     vector<string> global_indexes;
-    for (int d = 0; d < m_node->iterations().count(); ++d)
+    for (int d = 0; d < node->iterations().count(); ++d)
     {
         ostringstream index;
         index << "g_id_" << d;
@@ -83,12 +83,12 @@ string kernel::code()
 
     for (int i = 0; i < inputs.size(); ++i)
     {
-        node::add_indexes( inputs[i], global_indexes, m_node->input_rates()[i], ctx );
+        node::add_indexes( inputs[i], global_indexes, node->input_rates()[i], ctx );
     }
 
     // Generate function
 
-    m_node->func()->generate(inputs, outputs, ctx);
+    node->func()->generate(inputs, outputs, ctx);
 
     // End body
 
@@ -98,22 +98,24 @@ string kernel::code()
     return out.str();
 }
 
-bool kernel::compile( cl::Context & context, vector<cl::Device> & devices )
+kernel::kernel( const string & name,
+                node *node,
+                cl::Context & context,
+                vector<cl::Device> & devices ):
+    m_name(name),
+    m_node(node),
+    m_cl_status(CL_SUCCESS)
 {
-  int err;
+    string code = kernel::code(name, node);
 
-  string code = kernel::code();
+    m_program = cl::Program( context, code, false, &m_cl_status);
 
-  m_program = cl::Program( context, code, false, &err);
+    if (!check_cl_error(m_cl_status, "Failed to create program."))
+      return;
 
-  if (!check_cl_error(err, "Failed to create program."))
-    return false;
-
-  err = m_program.build(devices, "");
-  if (!check_cl_error(err, "Failed to build program."))
-    return false;
-
-  return true;
+    m_cl_status = m_program.build(devices, "");
+    if (!check_cl_error(m_cl_status, "Failed to build program."))
+      return;
 }
 
 }

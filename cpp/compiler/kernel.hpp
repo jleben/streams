@@ -13,18 +13,24 @@ using std::string;
 class kernel
 {
 public:
-    kernel( const string & name, node *node ):
-        m_name(name),
-        m_node(node)
-    {}
+    static std::string code( const string & name, node * );
 
-    std::string code();
+    kernel( const string & name,
+            node *node,
+            cl::Context & context,
+            std::vector<cl::Device> & devices );
 
-    bool compile( cl::Context &, std::vector<cl::Device> & );
+    bool error()
+    {
+        return m_cl_status != CL_SUCCESS;
+    }
+
+    bool run( );
 
 private:
     string m_name;
     node *m_node;
+    cl_int m_cl_status;
     cl::Program m_program;
 };
 
