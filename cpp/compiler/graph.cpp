@@ -411,7 +411,7 @@ void node::generate( const stream_code::values & inputs,
         i = 0;
         for ( stream_code::value & out : indexed_outputs )
         {
-            add_indexes(out, indexes, m_input_rates[i], ctx);
+            add_indexes(out, indexes, m_func->output_size(i), ctx);
             ++i;
         }
 
