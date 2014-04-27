@@ -26,6 +26,23 @@ constant< array<T, sizeof...(TT)+1> > make_constant( const T & v, const TT ... v
   return array<T, sizeof...(TT)+1>({v, vv...});
 }
 
+template <typename C>
+struct iterator
+{
+    int index;
+    C container;
+    iterator(const C & container, int start = 0):
+        index(start), container(container)
+    {}
+    typename C::value_type operator()() { return container[index++]; }
+};
+
+template <typename C>
+iterator<C> iterate(const C & container, int start = 0)
+{
+    return iterator<C>(container, start);
+}
+
 //
 
 template<size_t N, typename First, typename Second>

@@ -11,7 +11,7 @@ using namespace streams;
 
 int main()
 {
-#if 1
+#if 0
   auto n = serialize (
         accumulate<2>( accumulate<3>( make_constant(2) ) ),
         split(),
@@ -41,7 +41,7 @@ int main()
 
   cout << "split, fork, join: " << print(n3()) << endl;
 
-#endif
+
 
 
   auto a = serialize( accumulate<2>( make_constant(2) ),
@@ -61,6 +61,14 @@ int main()
   cout << "x(2) = " << print( x(2) ) << endl;
   auto input = make_array(make_array(1,2),make_array(3,4));
   cout << "x(" << print(input) << ") = " << print( x( input ) ) << endl;
+#endif
+
+  array<float, 3> data = { 2.0, 3.0, 4.0 };
+
+  auto x = serialize( accumulate<2>( streams::iterate(data) ),
+                      sum() );
+
+  cout << print( x() ) << endl;
 
   return 0;
 }
