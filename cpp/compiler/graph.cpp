@@ -249,11 +249,11 @@ void node::merge(node *other, bool downstream)
 
     if (downstream)
     {
-        graph->children.push_front(other);
+        graph->children.push_back(other);
     }
     else
     {
-        graph->children.push_back(other);
+        graph->children.push_front(other);
     }
 }
 
