@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <numeric>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include <cassert>
 #include <CL/cl.hpp>
 
@@ -79,6 +81,16 @@ inline bool check_cl_error(cl_int err, const char * what)
     return false;
   }
   return true;
+}
+
+inline void confirm(cl_int status, const char *what)
+{
+    if (status != CL_SUCCESS)
+    {
+        std::ostringstream msg;
+        msg << "(" << status << ") " << what;
+        throw std::runtime_error(msg.str().c_str());
+    }
 }
 
 } // namespace

@@ -9,6 +9,7 @@
 
 namespace stream_graph {
 
+using std::vector;
 using std::string;
 using stream_util::extent;
 
@@ -44,6 +45,37 @@ private:
     cl::Kernel m_kernel;
     //std::vector<cl::Buffer> m_inputs;
     //std::vector<cl::Buffer> m_outputs;
+};
+
+class coordinator
+{
+
+public:
+    coordinator( composite_function * func );
+
+    void run();
+
+private:
+    struct kernel_data
+    {
+        kernel_data(cl::Context &, std::vector<cl::Device> &,
+                     node *def, const std::string &name,
+                     vector<cl::Buffer> & inputs );
+        ~kernel_data();
+        node *def;
+        kernel krnl;
+        vector<float*> in_mem;
+        vector<float*> out_mem;
+        vector<cl::Buffer> in_buf;
+        vector<cl::Buffer> out_buf;
+    };
+
+    composite_function *m_func;
+    cl::Platform m_platform;
+    std::vector<cl::Device> m_devices;
+    cl::Context m_context;
+    cl::CommandQueue m_cmd_queue;
+    vector<kernel_data> m_schedule;
 };
 
 } // namespace
