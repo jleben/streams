@@ -47,6 +47,8 @@ struct composite_function : public function
     extent input_size( int index );
     extent output_size( int index );
 
+    void optimize();
+
     void generate( const stream_code::values & inputs,
                    stream_code::values & outputs,
                    stream_code::context & );

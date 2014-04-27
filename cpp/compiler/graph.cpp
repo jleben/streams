@@ -38,6 +38,37 @@ extent composite_function::output_size( int index )
     return children.back()->output_size(index);
 }
 
+void composite_function::optimize()
+{
+    cout << "Optimizing..." << endl;
+    std::list<node*>::iterator host, target;
+
+    host = target = children.begin();
+    ++target;
+
+    int i = 0;
+
+    while(host != children.end() && target != children.end())
+    {
+        node *a = *host;
+        node *b = *target;
+        bool downstream = true;
+        if (a->can_merge(b, downstream))
+        {
+            cout << "-- Merging " << (i+1) << " into " << i << endl;
+            a->merge(b, downstream);
+            target = children.erase(target);
+        }
+        else
+        {
+            cout << "-- Shifting to " << (i+1) << endl;
+            ++host;
+        }
+        ++i;
+    }
+    cout << "Optimization finished." << endl;
+}
+
 ////////////////
 
 extent node::input_size(int index)

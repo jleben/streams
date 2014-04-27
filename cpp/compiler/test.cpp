@@ -19,7 +19,7 @@ int main()
     using stream_util::extent;
 
     extent iterations = { (int) 1e7 };
-#if 1
+
     composite_function f;
 
     node *a = new node( new scalar_op("*", 2) );
@@ -30,9 +30,10 @@ int main()
 
     f.children.push_back( a );
     f.children.push_back( b );
-    //f.children.push_back( new node( new scalar_op("*", 2) ) );
-    //f.children.push_back( new node( new scalar_op("+", 3) ) );
 
+    f.optimize();
+
+#if 0
     //node loop( new scalar_op("*", 2) );
     node loop( &f );
     loop.input_rates() = { {5} };
