@@ -9,6 +9,9 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <algorithm>
+
+#undef max
 
 namespace stream_graph {
 

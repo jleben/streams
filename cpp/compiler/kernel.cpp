@@ -9,6 +9,7 @@ using namespace std;
 namespace stream_graph {
 
 using namespace stream_code;
+using namespace stream_util;
 
 string kernel::code()
 {
@@ -95,6 +96,24 @@ string kernel::code()
     ctx << "}" << endl;
 
     return out.str();
+}
+
+bool kernel::compile( cl::Context & context, vector<cl::Device> & devices )
+{
+  int err;
+
+  string code = kernel::code();
+
+  m_program = cl::Program( context, code, false, &err);
+
+  if (!check_cl_error(err, "Failed to create program."))
+    return false;
+
+  err = m_program.build(devices, "");
+  if (!check_cl_error(err, "Failed to build program."))
+    return false;
+
+  return true;
 }
 
 }

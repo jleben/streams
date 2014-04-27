@@ -4,6 +4,7 @@
 #include "graph.hpp"
 
 #include <string>
+#include <CL/cl.hpp>
 
 namespace stream_graph {
 
@@ -19,9 +20,12 @@ public:
 
     std::string code();
 
+    bool compile( cl::Context &, std::vector<cl::Device> & );
+
 private:
     string m_name;
     node *m_node;
+    cl::Program m_program;
 };
 
 } // namespace

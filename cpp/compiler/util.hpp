@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <CL/cl.hpp>
 
 namespace stream_util
 {
@@ -46,6 +47,16 @@ inline std::ostream & operator<<( std::ostream & s, const extent & size )
     for (int i : size)
         s << i << " ";
     s << ">";
+}
+
+inline bool check_cl_error(cl_int err, const char * what)
+{
+  if (err != CL_SUCCESS)
+  {
+    std::cerr << "ERROR (" << err << "): " << what << std::endl;
+    return false;
+  }
+  return true;
 }
 
 } // namespace
