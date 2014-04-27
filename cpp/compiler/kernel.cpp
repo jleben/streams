@@ -51,14 +51,14 @@ string kernel::code()
     {
         if (comma)
             ctx  << ", ";
-        ctx << "float * " << in;
+        ctx << "__global float * " << in;
         comma = true;
     }
     for (const string & out : output_names)
     {
         if (comma)
             ctx  << ", ";
-        ctx << "float * " << out;
+        ctx << "__global float * " << out;
         comma = true;
     }
     ctx << " )" << endl;
