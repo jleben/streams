@@ -14,11 +14,24 @@ using namespace std;
 using namespace std::chrono;
 typedef std::chrono::high_resolution_clock test_clock;
 
-int main()
+int main(int argc, char *argv[])
 {
     using stream_util::extent;
 
-    extent iterations = { (int) 1e7 };
+    int global_iteration_count = (int) 1e7;
+
+    if (argc > 1)
+        global_iteration_count = atoi(argv[1]);
+
+    if (global_iteration_count < 1)
+    {
+        cerr << "Invalid iteration count: " << global_iteration_count << endl;
+        return 1;
+    }
+
+    cout << "Iteration count: " << global_iteration_count << endl;
+
+    extent iterations = { global_iteration_count };
 
     composite_function f;
 
