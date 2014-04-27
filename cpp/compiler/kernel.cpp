@@ -226,21 +226,26 @@ coordinator::kernel_data::kernel_data(cl::Context &context, std::vector<cl::Devi
     {
         for (int i = 0; i < def->input_count(); ++i)
         {
-            cout << "Input size = " << def->input_size(i).area() << endl;
             size_t bytes = def->input_size(i).area() * sizeof(float);
             in_mem.push_back( (float*) _aligned_malloc(bytes, 16) );
             in_buf.emplace_back(context, CL_MEM_USE_HOST_PTR, bytes, in_mem.back(), &status);
             confirm(status, "Could not create input buffer.");
+
+            cout << "Input size = " << def->input_size(i).area()
+                 << " = " << ( (float) bytes / 1024 / 1024 ) << " Mb" << endl;
         }
     }
 
     for (int i = 0; i < def->output_count(); ++i)
     {
-        cout << "Output size = " << def->output_size(i).area() << endl;
+
         size_t bytes = def->output_size(i).area() * sizeof(float);
         out_mem.push_back( (float*) _aligned_malloc(bytes, 16) );
         out_buf.emplace_back(context, CL_MEM_USE_HOST_PTR, bytes, out_mem.back(), &status);
         confirm(status, "Could not create input buffer.");
+
+        cout << "Output size = " << def->output_size(i).area()
+             << " = " << ( (float) bytes / 1024 / 1024 ) << " Mb" << endl;
     }
 
     krnl.set_data(in_buf, out_buf);
@@ -262,7 +267,6 @@ void coordinator::run()
         k.krnl.run(m_cmd_queue);
         cl_int status = m_cmd_queue.finish();
         confirm(status, "Problem running kernel.");
-        cout << "Kernel run OK." << endl;
     }
 }
 

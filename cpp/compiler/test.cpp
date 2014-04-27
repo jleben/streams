@@ -6,21 +6,27 @@
 
 
 #include <iostream>
+#include <chrono>
 
 using namespace stream_graph;
 using namespace stream_util;
 using namespace std;
+using namespace std::chrono;
+typedef std::chrono::high_resolution_clock test_clock;
 
 int main()
 {
+    using stream_util::extent;
+
+    extent iterations = { (int) 1e7 };
 #if 1
     composite_function f;
 
     node *a = new node( new scalar_op("*", 2) );
-    a->iterations() = { 5 };
+    a->iterations() = iterations;
 
     node *b = new node( new scalar_op("+", 3) );
-    b->iterations() = { 5 };
+    b->iterations() = iterations;
 
     f.children.push_back( a );
     f.children.push_back( b );
@@ -41,7 +47,14 @@ int main()
     {
         coordinator c(&f);
 
+        cout << "Running..." << endl;
+
+        test_clock::time_point start = test_clock::now();
         c.run();
+        test_clock::time_point end = test_clock::now();
+
+        duration<double, milli> dur = end - start;
+        cout << "Duration = " << dur.count() << " ms" << endl;
     }
     catch (std::exception & e)
     {
