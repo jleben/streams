@@ -4,7 +4,9 @@
 #include <initializer_list>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <iostream>
+#include <cassert>
 #include <CL/cl.hpp>
 
 namespace stream_util
@@ -37,17 +39,24 @@ struct extent : public std::vector<int>
 
     int count() const { return std::vector<int>::size(); }
 
-    int flat_value() const
+    int area() const
     {
-        int flat_value = 0;
+        return std::accumulate( begin(), end(), 1,
+                                [](int x, int y){return x *y;} );
+    }
+
+    int index_in( const extent & size ) const
+    {
+        assert( count() < size.count() );
+        int index = 0;
         int ratio = 1;
-        for (int d = count() - 1; d >= 0; --d)
+        for (int d = size.count() - 1; d >= 0; --d)
         {
-            int value = operator[](d);
-            flat_value += value * ratio;
-            ratio *= value;
+            int value = at(d);
+            index += value * ratio;
+            ratio *= size[d];
         }
-        return flat_value;
+        return index;
     }
 };
 

@@ -85,6 +85,10 @@ string kernel::code( const string & kernel_name, node *node )
     {
         node::add_indexes( inputs[i], global_indexes, node->input_rates()[i], ctx );
     }
+    for (int i = 0; i < outputs.size(); ++i)
+    {
+        node::add_indexes( outputs[i], global_indexes, node->func()->output_size(i), ctx );
+    }
 
     // Generate function
 
@@ -116,6 +120,55 @@ kernel::kernel( const string & name,
     m_cl_status = m_program.build(devices, "");
     if (!check_cl_error(m_cl_status, "Failed to build program."))
       return;
+
+    m_kernel = cl::Kernel(m_program, name.c_str(), &m_cl_status);
+    if (!check_cl_error(m_cl_status, "Could not create kernel."))
+        return;
+}
+
+bool kernel::set_data( std::vector<cl::Buffer> inputs,
+                       std::vector<cl::Buffer> outputs )
+{
+    if ( inputs.size() != m_node->input_count() ||
+         outputs.size() != m_node->output_count() )
+    {
+        cerr << "Wrong IO count" << endl;
+        return false;
+    }
+
+    for (int i = 0; i < inputs.size(); ++i)
+    {
+        m_cl_status = m_kernel.setArg(i, inputs[i]);
+        if (!check_cl_error(m_cl_status, "Failed to set argument."))
+            return false;
+    }
+    for (int i = 0; i < outputs.size(); ++i)
+    {
+        m_kernel.setArg(inputs.size() + i, outputs[i]);
+        if (!check_cl_error(m_cl_status, "Failed to set argument."))
+            return false;
+    }
+
+    return true;
+}
+
+bool kernel::run( std::vector<extent> & input_offsets,
+                  std::vector<extent> & outputs_offsets,
+                  cl::CommandQueue & cmd_queue )
+{
+    return true;
+}
+
+bool kernel::run( cl::CommandQueue & cmd_queue )
+{
+    extent iter = m_node->iterations();
+    cl::NDRange offset;
+    // FIXME: use all/only existing dimensions
+    cl::NDRange iterations(iter.at(0), iter.at(1), iter.at(2));
+    m_cl_status = cmd_queue.enqueueNDRangeKernel(m_kernel,
+                                                 offset,
+                                                 iterations);
+    return !error();
 }
 
 }
