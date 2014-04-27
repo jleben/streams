@@ -36,6 +36,19 @@ struct extent : public std::vector<int>
     }
 
     int count() const { return std::vector<int>::size(); }
+
+    int flat_value() const
+    {
+        int flat_value = 0;
+        int ratio = 1;
+        for (int d = count() - 1; d >= 0; --d)
+        {
+            int value = operator[](d);
+            flat_value += value * ratio;
+            ratio *= value;
+        }
+        return flat_value;
+    }
 };
 
 
