@@ -265,9 +265,9 @@ void coordinator::run()
     for ( kernel_data & k : m_schedule )
     {
         k.krnl.run(m_cmd_queue);
-        cl_int status = m_cmd_queue.finish();
-        confirm(status, "Problem running kernel.");
     }
+    cl_int status = m_cmd_queue.finish();
+    confirm(status, "Problem running kernel.");
 }
 
 }
