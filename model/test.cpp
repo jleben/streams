@@ -63,9 +63,9 @@ int main(int argc, char *argv[])
         cerr << "ERROR: " << e.what() << endl;
     }
 
-    f.optimize();
-
     cout << "== Optimized == " << endl;
+
+    f.optimize();
 
     try
     {
