@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 {
     using stream_util::extent;
 
-    int global_iteration_count = (int) 1e6;
+    int global_iteration_count = (int) 1000;
 
     if (argc > 1)
         global_iteration_count = atoi(argv[1]);
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
     cout << "Iteration count: " << global_iteration_count << endl;
 
-    extent iterations = { global_iteration_count, 5, 5 };
+    extent iterations = { global_iteration_count, 100, 100 };
 
     composite_function f;
 
@@ -44,18 +44,29 @@ int main(int argc, char *argv[])
     f.children.push_back( a );
     f.children.push_back( b );
 
+    cout << "== Unoptimized == " << endl;
+
+    try
+    {
+        coordinator c(&f);
+
+        cout << "Running..." << endl;
+
+        test_clock::time_point start = test_clock::now();
+        c.run();
+        test_clock::time_point end = test_clock::now();
+
+        duration<double, milli> dur = end - start;
+        cout << "Duration = " << dur.count() << " ms" << endl;
+    }
+    catch (std::exception & e)
+    {
+        cerr << "ERROR: " << e.what() << endl;
+    }
+
     f.optimize();
 
-#if 0
-    //node loop( new scalar_op("*", 2) );
-    node loop( &f );
-    loop.input_rates() = { {5} };
-    loop.iterations() = { 10, 2 };
-#endif
-#if 0
-    node loop( new scalar_op("*", 2) );
-    loop.iterations() = { 3, 4 };
-#endif
+    cout << "== Optimized == " << endl;
 
     try
     {
