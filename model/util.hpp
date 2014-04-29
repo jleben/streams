@@ -71,6 +71,7 @@ inline std::ostream & operator<<( std::ostream & s, const extent & size )
     for (int i : size)
         s << i << " ";
     s << ">";
+    return s;
 }
 
 inline bool check_cl_error(cl_int err, const char * what)
