@@ -1,7 +1,7 @@
 #ifndef STREAM_FUNCTIONS_INCLUDED
 #define STREAM_FUNCTIONS_INCLUDED
 
-#include "graph.hpp"
+#include "model.hpp"
 
 #include <string>
 #include <sstream>

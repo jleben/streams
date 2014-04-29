@@ -1,4 +1,4 @@
-#include "graph.hpp"
+#include "model.hpp"
 
 #include <stack>
 #include <sstream>

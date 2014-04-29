@@ -2,7 +2,7 @@
 #define STREAM_KERNEL_INCLUDED
 
 #include "util.hpp"
-#include "graph.hpp"
+#include "model.hpp"
 
 #include <vector>
 #include <list>
