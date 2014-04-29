@@ -41,7 +41,7 @@ string kernel::code( const string & kernel_name, node *node )
 
     // Create IO values
     values inputs = node->create_input_values(input_names);
-    values outputs = node->create_input_values(output_names);
+    values outputs = node->create_output_values(output_names);
 
     // Generate declaration
 
